@@ -25,6 +25,7 @@ type PLFinderParam struct {
 	Filters    []*Filter `json:"filters"`
 	Aggr       string    `json:"aggr"`
 	Flag       string    `json:"flag"`
+	TableKey   string    `json:"tablekey"`
 }
 
 func (s *PLFinderParam) GetPLCollections() ([]*toolkit.M, error) {
@@ -142,7 +143,7 @@ func (s *PLFinderParam) ParseFilter() *dbox.Filter {
 		switch each.Op {
 		case dbox.FilterOpIn:
 			values := []string{}
-			field := fmt.Sprintf("_id.%s", strings.Replace(each.Field, ".", "_", -1))
+			field := fmt.Sprintf("%s.%s", s.TableKey, strings.Replace(each.Field, ".", "_", -1))
 			hasOther := false
 
 			for _, v := range each.Value.([]interface{}) {
@@ -188,7 +189,8 @@ func (s *PLFinderParam) ParseFilter() *dbox.Filter {
 			}
 		case dbox.FilterOpGte:
 			var value interface{} = each.Value
-			field := fmt.Sprintf("_id.%s", strings.Replace(each.Field, ".", "_", -1))
+			field := fmt.Sprintf("%s.%s", s.TableKey, strings.Replace(each.Field, ".", "_", -1))
+
 			// interface is []interface {}, not string
 			if value.(string) != "" {
 				if field == "_id.date_year" {
@@ -205,7 +207,7 @@ func (s *PLFinderParam) ParseFilter() *dbox.Filter {
 			}
 		case dbox.FilterOpLte:
 			var value interface{} = each.Value
-			field := fmt.Sprintf("_id.%s", strings.Replace(each.Field, ".", "_", -1))
+			field := fmt.Sprintf("%s.%s", s.TableKey, strings.Replace(each.Field, ".", "_", -1))
 
 			if value.(string) != "" {
 				if field == "_id.date_year" {
@@ -222,7 +224,7 @@ func (s *PLFinderParam) ParseFilter() *dbox.Filter {
 			}
 		case dbox.FilterOpEqual:
 			value := each.Value
-			field := fmt.Sprintf("_id.%s", strings.Replace(each.Field, ".", "_", -1))
+			field := fmt.Sprintf("%s.%s", s.TableKey, strings.Replace(each.Field, ".", "_", -1))
 
 			filters = append(filters, dbox.Eq(field, value))
 			fmt.Println("---- filter: ", field, "eq", value)
@@ -275,6 +277,11 @@ func (s *PLFinderParam) GetTableName() string {
 	sort.Strings(filterKeys)
 	key := strings.Replace(strings.Join(filterKeys, "_"), ".", "_", -1)
 	tableName := fmt.Sprintf("pl_%s", key)
+
+	s.TableKey = "_id"
+	if tableName == "pl_customer_channelid_date_fiscal" {
+		s.TableKey = "key"
+	}
 
 	return tableName
 }
@@ -721,7 +728,7 @@ func (s *PLFinderParam) GetPLData() ([]*toolkit.M, error) {
 	}
 
 	for _, breakdown := range s.Breakdowns {
-		field := fmt.Sprintf("$_id.%s", strings.Replace(breakdown, ".", "_", -1))
+		field := fmt.Sprintf("$%s.%s", s.TableKey, strings.Replace(breakdown, ".", "_", -1))
 		alias := strings.Replace(fmt.Sprintf("_id.%s", breakdown), ".", "_", -1)
 		groupIds[alias] = field
 	}

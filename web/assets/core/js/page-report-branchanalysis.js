@@ -742,9 +742,9 @@ ba.changeBreakdownValue = function () {
 
 vm.currentMenu('Analysis');
 vm.currentTitle('Branch Analysis');
-vm.breadcrumb([{ title: 'Godrej', href: '#' }, { title: 'Branch Analysis', href: '#' }]);
+vm.breadcrumb([{ title: 'Godrej', href: viewModel.appName + 'page/landing' }, { title: 'Home', href: viewModel.appName + 'page/landing' }, { title: 'Branch Analysis', href: '#' }]);
 
-ba.title('Branch Analysis');
+ba.title('&nbsp;');
 
 rpt.refresh = function () {
 	ba.refresh(false);

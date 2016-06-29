@@ -2,7 +2,7 @@ viewModel.landing = {}
 let lgd = viewModel.landing
 
 lgd.menu = ko.observableArray([
-	{ to: 'dashboard', title: 'P&L Performance', icon: 'fa-bar-chart', color: 'rgb(10, 114, 183)' },
+	{ to: 'pnlperformance', title: 'P&L Performance', icon: 'fa-bar-chart', color: 'rgb(10, 114, 183)' },
 	{ to: 'distribution-analysis', title: 'Distribution Analysis', icon: 'fa-bus', color: 'rgb(17, 134, 212)' },
 	{ to: 'contribution-analysis', title: 'Contribution Analysis', icon: 'fa-plus', color: '#3498DB' },
 
@@ -16,8 +16,8 @@ lgd.menu = ko.observableArray([
 ])
 
 vm.currentMenu('Home')
-vm.currentTitle('Landing Page')
+vm.currentTitle('Home')
 vm.breadcrumb([
-	{ title: 'Godrej', href: '#' },
-	{ title: 'Landing Page', href: '#' }
+	{ title: 'Godrej', href: viewModel.appName + 'page/landing' },
+	{ title: 'Home', href: '#' },
 ])

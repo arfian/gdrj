@@ -7,25 +7,9 @@
 <div class="col-md-12 col-sm-12 no-padding hardcore">
 	<div class="panel ez no-padding hardcore">
 		<div class="panel-heading">
-			<h3 class="no-margin" data-bind="text: kac.title"></h3>
+			<h3 class="no-margin" data-bind="html: kac.title"></h3>
 			<div class="panel-nav-button" data-bind="visible: !kac.contentIsLoading()">
 				<div class="form-inline">
-					<button class="btn btn-sm btn-primary tooltipster" data-bind="click: kac.refresh" title="Refresh P&L Analysis">
-						<i class="fa fa-refresh"></i> Refresh
-					</button>
-					<button class="btn btn-sm btn-info tooltipster" data-bind="click: rpt.toggleFilter" title="Toggle Advanced Filter">
-						<i class="fa fa-server"></i> Show Filter
-					</button>
-					<button class="btn btn-sm btn-info tootipster" data-bind="visible: rpt.showExport" onclick="rpt.export('#key-account-analysis', 'Key Account Analysis', 'header-content')">
-						<i class="fa fa-download"></i> Export as Excel
-					</button>
-				</div>
-			</div>
-		</div>
-
-		<div class="panel-body">
-			<div class="filter" data-bind="visible: !kac.contentIsLoading()">
-				<div class="form-inline pull-right">
 					<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
 						<span class="input-group-addon align-right">Fiscal Year</span>
 						<div class="width-full">
@@ -40,10 +24,21 @@
 						</div>
 						<div class="clearfix"></div>
 					</div>
+					
+					<button class="btn btn-sm btn-primary tooltipster" data-bind="click: kac.refresh" title="Refresh P&L Analysis">
+						<i class="fa fa-refresh"></i> Refresh
+					</button>
+					<button class="btn btn-sm btn-info tooltipster" data-bind="click: rpt.toggleFilter" title="Toggle Advanced Filter">
+						<i class="fa fa-server"></i> Show Filter
+					</button>
+					<button class="btn btn-sm btn-info tootipster" data-bind="visible: rpt.showExport" onclick="rpt.export('#key-account-analysis', 'Key Account Analysis', 'header-content')">
+						<i class="fa fa-download"></i> Export as Excel
+					</button>
 				</div>
-				<div class="clearfix"></div>
 			</div>
+		</div>
 
+		<div class="panel-body">
 			<div data-bind="visible: kac.contentIsLoading">
 				{{template "_loader.html"}}
 			</div>

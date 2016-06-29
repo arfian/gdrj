@@ -739,11 +739,12 @@ ba.changeBreakdownValue = () => {
 vm.currentMenu('Analysis')
 vm.currentTitle('Branch Analysis')
 vm.breadcrumb([
-	{ title: 'Godrej', href: '#' },
+	{ title: 'Godrej', href: viewModel.appName + 'page/landing' },
+	{ title: 'Home', href: viewModel.appName + 'page/landing' },
 	{ title: 'Branch Analysis', href: '#' }
 ])
 
-ba.title('Branch Analysis')
+ba.title('&nbsp;')
 
 rpt.refresh = () => {
 	ba.refresh(false)

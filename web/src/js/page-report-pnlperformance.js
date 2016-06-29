@@ -22,6 +22,12 @@ bkd.breakdownBranch_Channels = ko.observableArray([])
 bkd.breakdownBranch_ChannelRDNonRD = ko.observable('')
 bkd.breakdownBranch_SubChannel = ko.observable('')
 
+bkd.changeTo = (d, title) => {
+	bkd.breakdownBy(d)
+	bkd.title(title)
+	bkd.refresh()
+}
+
 bkd.isBreakdownBranchSubEnabled = (d) => ko.computed(() => {
 	if (d == 'channel') {
 		if (bkd.breakdownBranch_ChannelRDNonRD() != '') {
@@ -968,6 +974,378 @@ bkd.changeBreakdownValue = () => {
 
 
 
+
+
+
+viewModel.summary = {}
+let smry = viewModel.summary
+
+smry.summaryMode = ko.observable('overview')
+
+
+
+
+
+
+
+
+viewModel.dashboard = {}
+let dsbrd = viewModel.dashboard
+
+dsbrd.rows = ko.observableArray([
+	// { pnl: 'Gross Sales', plcodes: ["PL1", "PL2", "PL3", "PL4", "PL5", "PL6"] },
+	{ pnl: "Net Sales", plcodes: ["PL8A"] },
+	{ pnl: 'Growth', plcodes: [] }, // NOT YET
+	{ pnl: 'Sales Discount', plcodes: ["PL7", "PL8"] },
+	// { pnl: 'ATL', plcodes: ["PL28"] },
+	// { pnl: 'BTL', plcodes: ["PL29", "PL30", "PL31", "PL32"] },
+	{ pnl: "COGS", plcodes: ["PL74B"] },
+	{ pnl: "Gross Margin", plcodes: ["PL74C"] },
+	{ pnl: "SGA", plcodes: ["PL94A"] },
+	{ pnl: "Royalties", plcodes: ["PL26A"] },
+	{ pnl: "EBITDA", plcodes: ["PL44C"] },
+	{ pnl: "EBIT %", plcodes: [] },
+	{ pnl: "EBIT", plcodes: ["PL44B"] },
+])
+
+dsbrd.data = ko.observableArray([])
+dsbrd.columns = ko.observableArray([])
+dsbrd.breakdown = ko.observable('customer.channelname')
+dsbrd.fiscalYears = ko.observableArray(rpt.value.FiscalYears())
+dsbrd.contentIsLoading = ko.observable(false)
+dsbrd.optionStructures = ko.observableArray([
+	{ field: "date.fiscal", name: "Fiscal Year" },
+	{ field: "date.quartertxt", name: "Quarter" },
+	{ field: "date.month", name: "Month" }
+])
+dsbrd.structure = ko.observable(dsbrd.optionStructures()[0].field)
+dsbrd.structureYear = ko.observable('date.year')
+dsbrd.optionBreakdownValues = ko.observableArray([])
+dsbrd.breakdownValue = ko.observableArray([])
+dsbrd.breakdownValueAll = { _id: 'All', Name: 'All' }
+dsbrd.changeBreakdown = () => {
+	let all = dsbrd.breakdownValueAll
+	let map = (arr) => arr.map((d) => {
+		if (dsbrd.breakdown() == "customer.channelname") {
+			return d
+		}
+
+		return { _id: d.Name, Name: d.Name }
+	})
+	setTimeout(() => {
+		switch (dsbrd.breakdown()) {
+			case "customer.branchname":
+				dsbrd.optionBreakdownValues([all].concat(map(rpt.masterData.Branch())))
+				dsbrd.breakdownValue([all._id])
+			break;
+			case "product.brand":
+				dsbrd.optionBreakdownValues([all].concat(map(rpt.masterData.Brand())))
+				dsbrd.breakdownValue([all._id])
+			break;
+			case "customer.channelname":
+				dsbrd.optionBreakdownValues([all].concat(map(rpt.masterData.Channel())))
+				dsbrd.breakdownValue([all._id])
+			break;
+			case "customer.zone":
+				dsbrd.optionBreakdownValues([all].concat(map(rpt.masterData.Zone())))
+				dsbrd.breakdownValue([all._id])
+			break;
+			case "customer.areaname":
+				dsbrd.optionBreakdownValues([all].concat(map(rpt.masterData.Area())))
+				dsbrd.breakdownValue([all._id])
+			break;
+			case "customer.region":
+				dsbrd.optionBreakdownValues([all].concat(map(rpt.masterData.Region())))
+				dsbrd.breakdownValue([all._id])
+			break;
+			case "customer.keyaccount":
+				dsbrd.optionBreakdownValues([all].concat(map(rpt.masterData.KeyAccount())))
+				dsbrd.breakdownValue([all._id])
+			break;
+		}
+	}, 100)
+}
+
+dsbrd.changeBreakdownValue = () => {
+	let all = dsbrd.breakdownValueAll
+	setTimeout(() => {
+		let condA1 = dsbrd.breakdownValue().length == 2
+		let condA2 = dsbrd.breakdownValue().indexOf(all._id) == 0
+		if (condA1 && condA2) {
+			dsbrd.breakdownValue.remove(all._id)
+			return
+		}
+
+		let condB1 = dsbrd.breakdownValue().length > 1
+		let condB2 = dsbrd.breakdownValue().reverse()[0] == all._id
+		if (condB1 && condB2) {
+			dsbrd.breakdownValue([all._id])
+			return
+		}
+
+		let condC1 = dsbrd.breakdownValue().length == 0
+		if (condC1) {
+			dsbrd.breakdownValue([all._id])
+		}
+	}, 100)
+}
+
+dsbrd.refresh = () => {
+	if (dsbrd.breakdownValue().length == 0) {
+		toolkit.showError('Please choose at least breakdown value')
+		return
+	}
+
+	let param = {}
+	param.pls = _.flatten(dsbrd.rows().map((d) => d.plcodes))
+	param.groups = rpt.parseGroups([dsbrd.breakdown(), dsbrd.structure()])
+	param.aggr = 'sum'
+	param.filters = rpt.getFilterValue(true, dsbrd.fiscalYears)
+
+	let breakdownValue = dsbrd.breakdownValue().filter((d) => d != 'All')
+	if (breakdownValue.length > 0) {
+		param.filters.push({
+			Field: dsbrd.breakdown(),
+			Op: '$in',
+			Value: dsbrd.breakdownValue()
+		})
+	}
+
+	if (dsbrd.structure() == 'date.month') {
+		param.groups.push(dsbrd.structureYear())
+	}
+
+	let fetch = () => {
+		toolkit.ajaxPost(viewModel.appName + "report/getpnldatanew", param, (res) => {
+			if (res.Status == "NOK") {
+				setTimeout(() => { fetch() }, 1000 * 5)
+				return
+			}
+			console.log(res)
+			dsbrd.contentIsLoading(false)
+			dsbrd.render(res)
+		}, () => {
+			dsbrd.contentIsLoading(false)
+		})
+	}
+
+	dsbrd.contentIsLoading(true)
+	fetch()
+}
+
+dsbrd.render = (res) => {
+	let rows = []
+	let rowsAfter = []
+	let columnsPlaceholder = [{ 
+		field: 'pnl', 
+		title: 'PNL', 
+		attributes: { class: 'bold' }, 
+		headerAttributes: { style: 'font-weight: bold; vertical-align: middle;' }, 
+		width: 120
+	}, { 
+		field: 'total', 
+		title: 'Total', 
+		attributes: { class: 'bold align-right bold' }, 
+		headerAttributes: { style: 'font-weight: bold; vertical-align: middle; text-align: right;' }, 
+		width: 150
+	}]
+
+	let data = res.Data.Data
+
+	dsbrd.rows().forEach((row, rowIndex) => {
+		row.columnData = []
+		data.forEach((column, columnIndex) => {
+			let columnAfter = {
+				breakdownTitle: toolkit.redefine(column._id[`_id_${toolkit.replace(dsbrd.breakdown(), '.', '_')}`]), 
+				structureTitle: toolkit.redefine(column._id[`_id_${toolkit.replace(dsbrd.structure(), '.', '_')}`]), 
+				structureYearTitle: toolkit.redefine(column._id[`_id_${toolkit.replace(dsbrd.structureYear(), '.', '_')}`]), 
+				original: toolkit.sum(row.plcodes, (plcode) => toolkit.number(column[plcode])),
+				value: toolkit.sum(row.plcodes, (plcode) => toolkit.number(column[plcode])),
+			}
+
+			row.columnData.push(columnAfter)
+		})
+
+		rowsAfter.push(row)
+	})
+
+	if (rowsAfter.length > 0) {
+		let grossSales = rowsAfter.find((d) => d.pnl == 'Net Sales')
+		let ebit = rowsAfter.find((d) => d.pnl == 'EBIT')
+		let columns = rowsAfter[0].columnData
+
+		rowsAfter.forEach((row, rowIndex) => {
+			row.columnData.forEach((column, columnIndex) => {
+				if (row.pnl == 'EBIT %') {
+					let percentage = kendo.toString(toolkit.number(ebit.columnData[columnIndex].original / grossSales.columnData[columnIndex].original) * 100, 'n2')
+					column.value = `${percentage} %`;
+				} else if (row.pnl != 'Net Sales' && row.pnl != 'EBIT') {
+					let percentage = kendo.toString(toolkit.number(column.original / grossSales.columnData[columnIndex].original) * 100, 'n2')
+					column.value = `${percentage} %`;
+				}
+			})
+
+			let total = toolkit.sum(row.columnData, (d) => d.original)
+			row.total = kendo.toString(total, 'n0')
+			if (row.pnl == 'EBIT %') {
+				let totalGrossSales = toolkit.sum(grossSales.columnData, (d) => d.original)
+				let totalEbit = toolkit.sum(ebit.columnData, (d) => d.original)
+				let percentage = toolkit.number(totalEbit / totalGrossSales) * 100
+				row.total = `${kendo.toString(percentage, 'n2')} %`
+			}
+		})
+	}
+
+	let columnData = []
+	data.forEach((d, i) => {
+		let columnInfo = rowsAfter[0].columnData[i]
+
+		let column = {}
+		column.field = `columnData[${i}].value`
+		column.breakdown = $.trim(toolkit.redefine(columnInfo.breakdownTitle, ''))
+		column.title = $.trim(columnInfo.structureTitle)
+		column.width = 150
+		column.format = '{0:n0}'
+		column.attributes = { class: 'align-right' }
+		column.headerAttributes = { 
+			style: 'text-align: center !important; font-weight: bold; border-right: 1px solid white; ',
+		}
+
+		if (dsbrd.structure() == 'date.month') {
+			column.titleYear = $.trim(columnInfo.structureYearTitle)
+		}
+
+		columnData.push(column)
+	})
+
+	let op1 = _.groupBy(columnData, (d) => d.breakdown)
+	let op2 = _.map(op1, (v, k) => { 
+		v.forEach((h) => {
+			h.month = h.title
+			h.year = h.titleYear
+
+			if (dsbrd.structure() == 'date.month') {
+				let month = moment(new Date(2015, parseInt(h.title, 10) - 1, 1)).format('MMMM')
+				h.title = month
+
+				if (rpt.value.FiscalYears().length > 1) {
+					h.title = `${month} ${h.titleYear}`
+				}
+			}
+		})
+
+		return { 
+			title: ($.trim(k) == '' ? '' : k), 
+			columns: v,
+			headerAttributes: { 
+				style: 'text-align: center !important; font-weight: bold; border: 1px solid white; border-top: none; border-left: none; box-sizing: border-box; background-color: #e9eced;',
+			}
+		}
+	})
+
+	let columnGrouped = _.sortBy(op2, (d) => d.title)
+
+	op2.forEach((d) => {
+		d.columns = _.sortBy(d.columns, (e) => {
+			if (dsbrd.structure() == 'date.month') {
+				let monthString = `0${e.month}`.split('').reverse().slice(0, 2).reverse().join('')
+				
+				if (rpt.value.FiscalYears().length > 1) {
+					let yearMonthString = `${e.year}${monthString}`
+					return yearMonthString
+				}
+
+				return monthString
+			}
+
+			return e.title
+		})
+	})
+
+	if (columnGrouped.length > 0) {
+		columnsPlaceholder[0].locked = true
+		columnsPlaceholder[1].locked = true
+	}
+
+	columnGrouped = _.orderBy(columnGrouped, (d) => {
+		let value = 0
+		let dataColumn = rowsAfter[0].columnData
+			.find((e) => $.trim(e.breakdownTitle) == $.trim(d.title))
+		if (typeof dataColumn != 'undefined') {
+			value = dataColumn.value
+		}
+
+		return value
+	}, 'desc')
+
+	dsbrd.data(rowsAfter)
+	dsbrd.columns(columnsPlaceholder.concat(columnGrouped))
+
+	let grossSales = dsbrd.data().find((d) => d.pnl == "Net Sales")
+	let growth = dsbrd.data().find((d) => d.pnl == "Growth")
+
+	let counter = 0
+	let prevIndex = 0
+	columnGrouped.forEach((d) => {
+		d.columns.forEach((e, i) => {
+			let index = toolkit.getNumberFromString(e.field)
+
+			if ((i + 1) == d.columns.length) {
+				e.attributes.style = `${e.attributes.style}; border-right: 1px solid rgb(240, 243, 244);`
+			}
+
+			if (i == 0) {
+				prevIndex = index
+				counter++
+				return
+			}
+
+			let gs = grossSales.columnData[index]
+			let gsPrev = grossSales.columnData[prevIndex]
+			let g = growth.columnData[index]
+			let value = toolkit.number((gs.value - gsPrev.value) / gsPrev.value) * 100
+			g.value = `${kendo.toString(value, 'n2')} %`
+
+			counter++
+			prevIndex = index
+		})
+	})
+
+	let config = {
+		dataSource: {
+			data: dsbrd.data()
+		},
+		columns: dsbrd.columns(),
+		resizable: false,
+		sortable: false, 
+		pageable: false,
+		filterable: false,
+		dataBound: () => {
+			let sel = '.grid-dashboard .k-grid-content-locked tr, .grid-dashboard .k-grid-content tr'
+
+			$(sel).on('mouseenter', function () {
+				let index = $(this).index()
+				console.log(this, index)
+		        let elh = $(`.grid-dashboard .k-grid-content-locked tr:eq(${index})`).addClass('hover')
+		        let elc = $(`.grid-dashboard .k-grid-content tr:eq(${index})`).addClass('hover')
+			})
+			$(sel).on('mouseleave', function () {
+				$('.grid-dashboard tr.hover').removeClass('hover')
+			})
+		}
+	}
+
+	$('.grid-dashboard').replaceWith('<div class="grid-dashboard"></div>')
+	$('.grid-dashboard').kendoGrid(config)
+}
+
+
+
+
+
+
+
+
 viewModel.scatter = new Object()
 let rs = viewModel.scatter
 let dataPoints = [
@@ -1273,298 +1651,140 @@ rs.generateReport = (title, raw) => {
 }
 
 
-viewModel.chartCompare = {}
-let ccr = viewModel.chartCompare
 
-ccr.data = ko.observableArray([])
-ccr.dataComparison = ko.observableArray([])
-ccr.title = ko.observable('Chart Comparison')
-ccr.contentIsLoading = ko.observable(false)
-ccr.categoryAxisField = ko.observable('category')
-ccr.breakdownBy = ko.observable('')
-ccr.limitchart = ko.observable(6)
-ccr.optionComparison = ko.observableArray([
-	{ field: 'outlet', name: 'Outlet' },
-	{ field: 'price', name: 'Price' },
-	{ field: 'qty', name: 'Quantity' },
+
+
+
+
+
+viewModel.dashboardRanking = {}
+let rank = viewModel.dashboardRanking
+
+rank.optionDimensions = ko.observableArray([
+	{ field: 'NonRD', name: 'Non RD Sales' },
+	{ field: 'OnlyRD', name: 'Only RD Sales' },
+	{ field: 'customer.keyaccount', name: 'Key Account' },
+].concat(rpt.optionDimensions().slice(0)))
+rank.breakdown = ko.observable('customer.channelname')
+rank.columns = ko.observableArray([
+	{ field: 'pnl', title: 'PNL', attributes: { class: 'bold' } },
+	{ field: 'gmPercentage', template: (d) => `${kendo.toString(d.gmPercentage, 'n2')} %`, title: 'GM %', type: 'percentage', attributes: { class: 'align-right' }, headerAttributes: { style: 'text-align: right !important;', class: 'bold tooltipster', title: 'Click to sort' } },
+	{ field: 'cogsPercentage', template: (d) => `${kendo.toString(d.cogsPercentage, 'n2')} %`, title: 'COGS %', type: 'percentage', attributes: { class: 'align-right' }, headerAttributes: { style: 'text-align: right !important;', class: 'bold tooltipster', title: 'Click to sort' } },
+	{ field: 'ebitPercentage', template: (d) => `${kendo.toString(d.ebitPercentage, 'n2')} %`, title: 'EBIT %', type: 'percentage', attributes: { class: 'align-right' }, headerAttributes: { style: 'text-align: right !important;', class: 'bold tooltipster', title: 'Click to sort' } },
+	{ field: 'ebitdaPercentage', template: (d) => `${kendo.toString(d.ebitdaPercentage, 'n2')} %`, title: 'EBITDA %', type: 'percentage', attributes: { class: 'align-right' }, headerAttributes: { style: 'text-align: right !important;', class: 'bold tooltipster', title: 'Click to sort' } },
+	{ field: 'netSales', title: 'Net Sales', type: 'number', attributes: { class: 'align-right' }, headerAttributes: { style: 'text-align: right !important;', class: 'bold tooltipster', title: 'Click to sort' }, format: '{0:n0}' },
+	{ field: 'ebit', title: 'EBIT', type: 'number', attributes: { class: 'align-right' }, headerAttributes: { style: 'text-align: right !important;', class: 'bold tooltipster', title: 'Click to sort' }, format: '{0:n0}' },
 ])
-ccr.comparison = ko.observableArray(['price', 'qty'])
-ccr.fiscalYear = ko.observable(rpt.value.FiscalYear())
-ccr.order = ko.observable(ccr.optionComparison()[2].field)
+rank.contentIsLoading = ko.observable(false)
+rank.data = ko.observableArray([])
+rank.fiscalYear = ko.observable(rpt.value.FiscalYear())
 
-ccr.getDecreasedQty = (useCache = false) => {
+rank.refresh = () => {
+	let breakdown = rank.breakdown()
+	let isRDNonRD = (['OnlyRD', 'NonRD'].indexOf(rank.breakdown()) > -1)
+
+	if (isRDNonRD) {
+		breakdown = 'customer.channelname'
+	}
+
 	let param = {}
-	param.filters = rpt.getFilterValue(false, ccr.fiscalYear)
-	param.groups = ["skuid", "date.quartertxt"]
+	param.pls = ["PL74C", "PL74B", "PL44B", "PL44C", "PL8A"]
+	param.groups = rpt.parseGroups([breakdown])
+	param.aggr = 'sum'
+	param.filters = rpt.getFilterValue(false, rank.fiscalYear)
+
+	if (isRDNonRD) {
+		let values = ('OnlyRD' == rank.breakdown()) ? 
+			['I1'] : ["EXP", "I2", "I4", "I6", "I3"]
+
+		param.filters.push({
+			Field: 'customer.channelname',
+			Op: '$in',
+			Value: values
+		})
+	}
 
 	let fetch = () => {
-		toolkit.ajaxPost(viewModel.appName + `report/GetDecreasedQty`, param, (res) => {
+		toolkit.ajaxPost(viewModel.appName + "report/getpnldatanew", param, (res) => {
 			if (res.Status == "NOK") {
-				setTimeout(() => {
-					fetch()
-				}, 1000 * 5)
+				setTimeout(() => { fetch() }, 1000 * 5)
 				return
 			}
 
-			ccr.contentIsLoading(false)
-			ccr.dataComparison(res.Data.Data)
-			ccr.plot()
+			rank.contentIsLoading(false)
+			rank.render(breakdown, res)
 		}, () => {
-			ccr.contentIsLoading(false)
-		}, {
-			cache: (useCache == true) ? 'chart comparison' : false
+			rank.contentIsLoading(false)
 		})
 	}
 
-	ccr.contentIsLoading(true)
+	rank.contentIsLoading(true)
 	fetch()
 }
-ccr.refresh = () => {
-	// if (ccr.dataComparison().length > 0) {
-	// 	ccr.plot()
-	// } else {
-		ccr.getDecreasedQty()
-	// }
-}
-ccr.plot = () => {
-	let orderedData = _.orderBy(ccr.dataComparison(), (d) => {
-		if (ccr.order() == 'outlet') {
-			return d.outletList
+
+rank.render = (breakdown, res) => {
+	let data = _.sortBy(res.Data.Data, (d) => toolkit.redefine(d._id[`_id_${toolkit.replace(breakdown, '.', '_')}`], ''))
+
+	let rows = []
+	data.forEach((d) => {
+		let row = {}
+		row.original = d._id[`_id_${toolkit.replace(breakdown, '.', '_')}`]
+		row.pnl = d._id[`_id_${toolkit.replace(breakdown, '.', '_')}`]
+		if ($.trim(row.pnl) == '') {
+			row.original = ''
+			row.pnl = ''
+		}
+		if (breakdown == 'date.month') {
+			row.original = (parseInt(row.pnl, 10) - 1)
+			row.pnl = moment(new Date(2015, row.original, 1)).format('MMMM')
 		}
 
-		return d[ccr.order()]
-	}, 'desc')
-	ccr.dataComparison(orderedData)
 
-	// ccr.dataComparison(ccr.dummyJson)
-	let tempdata = []
-	// let qty = 0
-	// let price = 0
-	let outlet = 0, maxline = 0, maxprice = 0, maxqty = 0, quarter = []
-	for (var i in ccr.dataComparison()){
-		if (ccr.dataComparison()[i].productName != undefined){
-			// qty = _.filter(ccr.dataComparison()[i].qty, function(resqty){ return resqty == 0}).length
-			// price = _.filter(ccr.dataComparison()[i].price, function(resprice){ return resprice == 0}).length
-			maxprice = _.max(ccr.dataComparison()[i].price)
-			maxqty = _.max(ccr.dataComparison()[i].qty)
-			outlet = _.max(ccr.dataComparison()[i].outletList)
-			// if (maxprice > maxqty)
-			// 	maxline = maxprice
-			// else
-			// 	maxline = maxqty
-			quarter = []
-			for (var a in ccr.dataComparison()[i].qty){
-				quarter.push(`Quarter ${parseInt(a)+1}`)
-			}
-			tempdata.push({
-				qty: ccr.dataComparison()[i].qtyCount,
-				price: ccr.dataComparison()[i].priceCount,
-				quarter: quarter,
-				maxoutlet: outlet + (outlet/2),
-				maxprice: maxprice + (maxprice/4),
-				maxqty: maxqty + (maxqty/4),
-				productName: ccr.dataComparison()[i].productName,
-				data: ccr.dataComparison()[i]
-			})
-		}
-	}
-	// let sortPriceQty = _.take(_.sortBy(tempdata, function(item) {
-	//    return [item.qty, item.price]
-	// }).reverse(), ccr.limitchart())
-	console.log("--------> TEMP DATA", tempdata)
-	let sortPriceQty = _.take(tempdata, ccr.limitchart())
-	ccr.data(sortPriceQty)
-	ccr.render()
-}
-ccr.render = () => {
-	let configure = (data, full) => {
-		let seriesLibs = {
-			price: { 
-				name: 'Price', 
-				// field: 'value1', 
-				data: data.price, 
-				width: 3, 
-				markers: {
-					visible: true,
-					size: 10,
-					border: {
-						width: 3
-					}
-				},
-				axis: "price",
-				color: '#5499C7',
-				labels: {
-					visible: false,
-					background: 'rgba(84,153,199,0.2)'
-				}
-			},
-			qty: { 
-				name: 'Qty', 
-				// field: 'value2', 
-				data: data.qty, 
-				width: 3, 
-				markers: {
-					visible: true,
-					size: 10,
-					border: {
-						width: 3
-					}
-				},
-				axis: "qty",
-				color: '#ff8d00',
-				labels: {
-					visible: false,
-					background: 'rgba(255,141,0,0.2)'
-				}
-			},
-			outlet: { 
-				name: 'Outlet', 
-				// field: 'value3', 
-				data: data.outletList,
-				type: 'column', 
-				width: 3, 
-				overlay: {
-					gradient: 'none'
-				},
-				border: {
-					width: 0
-				},
-				markers: {
-					visible: true,
-					style: 'smooth',
-					type: 'column',
-				},
-				axis: "outlet",
-				color: '#678900',
-				labels: {
-					visible: false,
-					background: 'rgba(103,137,0,0.2)'
-				}
-			}
-		}
-
-		let series = []
-		ccr.comparison().forEach((d) => {
-			series.push(seriesLibs[d])
-		})
-
-		let valueAxes = []
-		// , maxyo = 0, fieldmax = '', maxselect = 0
-		// if (ccr.comparison().indexOf('qty') > -1 || ccr.comparison().indexOf('price') > -1) {
-		// 	valueAxes.push({
-		// 		name: "priceqty",
-  //               title: { text: "Qty & Price" },
-		// 		majorGridLines: {
-		// 			color: '#fafafa'
-		// 		},
-		// 		max: full.maxline,
-		// 	})
-		// }
-		// if (ccr.comparison().indexOf('outlet') > -1) {
-		// 	valueAxes.push({
-		// 		name: "outlet",
-  //               title: { text: "Outlet" },
-  //               majorGridLines: {
-		// 			color: '#fafafa'
-		// 		},
-		// 		max: full.maxoutlet,
-		// 	})
-		// }
-		// if (ccr.comparison().length > 1) {
-		// 	if (ccr.comparison()[0] > ccr.comparison()[1]){
-		// 		maxyo = full["max"+ccr.comparison()[0]]
-		// 		fieldmax = ccr.comparison()[0]
-		// 	} else {
-		// 		maxyo = full["max"+ccr.comparison()[1]]
-		// 		fieldmax = ccr.comparison()[1]
-		// 	}
-		// } else if (ccr.comparison() > 0) {
-		// 	maxyo = full["max"+ccr.comparison()[0]]
-		// 	fieldmax = ccr.comparison()[0]
-		// }
-		// maxyo += maxyo / 4
-		for (let e in ccr.comparison()){
-			valueAxes.push({
-				name: ccr.comparison()[e],
-                title: { text: ccr.comparison()[e].charAt(0).toUpperCase() + ccr.comparison()[e].slice(1) },
-                majorGridLines: {
-					color: '#fafafa'
-				},
-				max: full["max"+ccr.comparison()[e]],
-			})
-		}
-
-		return {
-			// dataSource: {
-			// 	data: data
-			// },
-			series: series,
-			seriesDefaults: {
-	            type: "line",
-	            style: "smooth",
-				labels: {
-					font: '"Source Sans Pro" 11px',
-					visible: true,
-					position: 'top',
-					template: (d) => {
-						return `${d.series.name}: ${kendo.toString(d.value, 'n0')}`
-					}
-				}
-			},
-			categoryAxis: {
-				baseUnit: "month",
-				// field: ccr.categoryAxisField(),
-				categories: full.quarter,
-				majorGridLines: {
-					color: '#fafafa'
-				},
-				axisCrossingValue: [0, 8],
-				labels: {
-					font: '"Source Sans Pro" 11px',
-					rotation: 40
-					// template: (d) => `${toolkit.capitalize(d.value).slice(0, 3)}`
-				}
-			},
-			legend: {
-				position: 'bottom'
-			},
-			valueAxes: valueAxes,
-			tooltip: {
-				visible: true,
-				template: (d) => `${d.series.name} on : ${kendo.toString(d.value, 'n0')}`
-			}
-		}
-	}
-
-	let chartContainer = $('.chart-comparison')
-	chartContainer.empty()
-	for (var e in ccr.data()){
-		let html = $($('#template-chart-comparison').html())
-		let config = configure(ccr.data()[e].data, ccr.data()[e])
-
-		html.appendTo(chartContainer)
-		html.find('.title').html(ccr.data()[e].data.productName)
-		html.find('.chart').kendoChart(config)
-	}
-	chartContainer.append($('<div />').addClass('clearfix'))
-}
-
-rpt.toggleFilterCallback = () => {
-	$('.chart-comparison .k-chart').each((i, e) => {
-		$(e).data('kendoChart').redraw()
+		row.gmPercentage = toolkit.number(d.PL74C / d.PL8A) * 100
+		row.cogsPercentage = toolkit.number(d.PL74B / d.PL8A) * 100
+		row.ebitPercentage = toolkit.number(d.PL44B / d.PL8A) * 100
+		row.ebitdaPercentage = toolkit.number(d.PL44C / d.PL8A) * 100
+		row.netSales = d.PL8A
+		row.ebit = d.PL44B
+		rows.push(row)
 	})
+
+	rank.data(_.orderBy(rows, (d) => d.netSales, 'desc'))
+
+	let config = {
+		dataSource: {
+			data: rank.data(),
+			pageSize: 10,
+		},
+		columns: rank.columns(),
+		resizabl: false,
+		sortable: true, 
+		pageable: true,
+		filterable: false,
+		dataBound: app.gridBoundTooltipster('.grid-ranking')
+	}
+
+	$('.grid-ranking').replaceWith('<div class="grid-ranking sortable"></div>')
+	$('.grid-ranking').kendoGrid(config)
 }
 
-vm.currentMenu('Analysis')
-vm.currentTitle('P&L Analysis')
+
+
+
+
+
+
+
+vm.currentMenu('P&L Performance')
+vm.currentTitle('&nbsp;')
 vm.breadcrumb([
-	{ title: 'Godrej', href: '#' },
-	{ title: 'PNL Analysis', href: '#' }
+	{ title: 'Godrej', href: viewModel.appName + 'page/landing' },
+	{ title: 'Home', href: viewModel.appName + 'page/landing' },
+	{ title: 'P&L Performance', href: '#' }
 ])
 
-bkd.title('P&L Analysis')
+bkd.title('P&L Summary')
 rs.title('P&L Comparison to Net Sales')
-ccr.title('Quantity, Price & Outlet')
 
 rpt.refresh = () => {
 	rpt.tabbedContent()
@@ -1579,10 +1799,21 @@ rpt.refresh = () => {
 	}, 200)
 
 	rpt.prepareEvents()
-
-	// ccr.getDecreasedQty(false)
 }
 
 $(() => {
-	rpt.refresh()
+	bkd.changeBreakdown()
+	setTimeout(() => {
+		bkd.breakdownValue(['All'])
+		bkd.refresh(false)
+	}, 200)
+
+	dsbrd.changeBreakdown()
+	setTimeout(() => {
+		dsbrd.breakdownValue(['All'])
+		dsbrd.refresh()
+	}, 200)
+	
+	rs.getSalesHeaderList()
+	rank.refresh()
 })

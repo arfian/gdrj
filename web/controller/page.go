@@ -129,11 +129,11 @@ func (w *PageController) Organization(r *knot.WebContext) interface{} {
 	return w.Params
 }
 
-func (w *PageController) PNLAnalysis(r *knot.WebContext) interface{} {
+func (w *PageController) PNLPerformance(r *knot.WebContext) interface{} {
 	gocore.WriteLog(r.Session("sessionid", ""), "access", r.Request.URL.String())
 	r.Config.OutputType = knot.OutputTemplate
 	r.Config.LayoutTemplate = LayoutFile
-	r.Config.ViewName = "page-report-analysis.html"
+	r.Config.ViewName = "page-report-pnlperformance.html"
 
 	return w.Params
 }
@@ -183,20 +183,11 @@ func (w *PageController) CustomAnalysis(r *knot.WebContext) interface{} {
 	return w.Params
 }
 
-func (w *PageController) Landing(r *knot.WebContext) interface{} {
+func (w *PageController) Home(r *knot.WebContext) interface{} {
 	gocore.WriteLog(r.Session("sessionid", ""), "access", r.Request.URL.String())
 	r.Config.OutputType = knot.OutputTemplate
 	r.Config.LayoutTemplate = LayoutFile
 	r.Config.ViewName = "page-report-landing.html"
-
-	return w.Params
-}
-
-func (w *PageController) Summary(r *knot.WebContext) interface{} {
-	gocore.WriteLog(r.Session("sessionid", ""), "access", r.Request.URL.String())
-	r.Config.OutputType = knot.OutputTemplate
-	r.Config.LayoutTemplate = LayoutFile
-	r.Config.ViewName = "page-report-summary.html"
 
 	return w.Params
 }

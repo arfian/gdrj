@@ -563,11 +563,12 @@ kac.changeBreakdownValue = () => {
 vm.currentMenu('Analysis')
 vm.currentTitle('Key Account Analysis')
 vm.breadcrumb([
-	{ title: 'Godrej', href: '#' },
+	{ title: 'Godrej', href: viewModel.appName + 'page/landing' },
+	{ title: 'Home', href: viewModel.appName + 'page/landing' },
 	{ title: 'Key Account Analysis', href: '#' }
 ])
 
-kac.title('Key Account Analysis')
+kac.title('&nbsp;')
 
 rpt.refresh = () => {
 	kac.changeBreakdown()

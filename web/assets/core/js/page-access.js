@@ -58,9 +58,7 @@ ac.AccessColumns = ko.observableArray([{ headerTemplate: "<center><input type='c
 }, {
     headerTemplate: "<center>Action</center>", width: 100,
     template: function template(d) {
-        return ["<button class='btn btn-sm btn-warning' onclick='ac.editData(\"" + d._id + "\")'><span class='fa fa-pencil'></span></button>"].
-        // "<div onclick='ed.showFormulaEditor("+d.Index+", "+d+")'>"+d.FormulaText.join('')+"</div>",
-        join(" ");
+        return ["<button class='btn btn-sm btn-warning' onclick='ac.editData(\"" + d._id + "\")'><span class='fa fa-pencil'></span></button>"].join(" ");
     }
 }]);
 
