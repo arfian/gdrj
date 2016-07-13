@@ -14,6 +14,29 @@
             "args": ["-test.v"]
         },
         {
+            "name": "CalcDiscAct",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "remotePath": "",
+            "port": 2345,
+            "host": "127.0.0.1",
+            "program": "${workspaceRoot}/modules/updactivity",
+            "env": {},
+            "args": ["-test.v"]
+        },{
+            "name": "TrfRD",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "remotePath": "",
+            "port": 2345,
+            "host": "127.0.0.1",
+            "program": "${workspaceRoot}/modules/trfrd",
+            "env": {},
+            "args": ["-test.v"]
+        },
+        {
             "name": "TestSGAAlloc",
             "type": "go",
             "request": "launch",
@@ -21,9 +44,9 @@
             "remotePath": "",
             "port": 2345,
             "host": "127.0.0.1",
-            "program": "${workspaceRoot}/modules/allocationsga",
+            "program": "${workspaceRoot}/modules/updsga",
             "env": {},
-            "args": ["-year=2016"]
+            "args": []
         },
         {
             "name": "TestSalesUpd",

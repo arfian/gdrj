@@ -33,8 +33,6 @@ lg.ErrorMessage = ko.observable('');
 lg.getConfirReset = ko.mapping.fromJS(lg.templateUrlParam);
 
 lg.getLogin = function () {
-	event.preventDefault();
-
 	if (!toolkit.isFormValid("#login-form")) {
 		return;
 	}
@@ -48,7 +46,7 @@ lg.getLogin = function () {
 		lg.ErrorMessage(res.message);
 
 		if (res.message == "Login Success") {
-			window.location = viewModel.appName + "page/dashboard";
+			window.location = viewModel.appName + "page/home";
 		}
 	});
 };
@@ -105,4 +103,6 @@ lg.getConfirmReset = function () {
 	}
 };
 
-$(function () {});
+$(function () {
+	$('#loginForm').height($(window).height());
+});

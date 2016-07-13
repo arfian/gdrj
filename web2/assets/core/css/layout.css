@@ -229,20 +229,20 @@ body {
   border-color: #74B841;
 }
 .login-bg {
-  background: #007dba url('/res/img/bg_city.JPG') no-repeat center top;
+  background: #007dba no-repeat center top;
   background-size: cover;
   height: 100vh;
   z-index: 99;
 }
 .login-logo {
-  background: url('/res/img/logo.png') no-repeat center top;
+  background: no-repeat center top;
   width: 150px;
   height: 90px;
   background-size: 145px 74px;
-  margin-bottom: 30px;
+  margin: 80px 0px 40px;
 }
 .login-logo-reset {
-  background: url('/res/img/logo.png') no-repeat center top;
+  background: no-repeat center top;
   width: 99px;
   height: 90px;
   background-size: 99px 90px;
@@ -259,10 +259,8 @@ body {
 }
 .fh {
   margin: auto;
-  padding: 15%;
-}
-.tab-content > div {
-  padding-top: 10px;
+  width: 200px;
+  padding-top: 0px;
 }
 .report-module-rsec > div {
   padding-left: 0px;
@@ -483,12 +481,12 @@ body {
   position: absolute;
   left: 0;
   top: 0;
-  width: 365px;
+  width: 420px;
   border-right: 1px solid #F0F3F4;
 }
 .pivot-pnl .table-content {
   overflow-x: scroll;
-  margin-left: 365px;
+  margin-left: 420px;
 }
 .pivot-pnl table {
   margin-bottom: 0;
@@ -654,7 +652,7 @@ body {
 .nav-replace-title {
   position: absolute;
   left: 10px;
-  top: -42px;
+  top: -47px;
 }
 .pivot-ez {
   position: relative;
@@ -702,4 +700,81 @@ body {
 }
 .pivot-ez .table-clear {
   clear: both;
+}
+.landing .box {
+  padding: 10px;
+  cursor: pointer;
+}
+.landing .box:not(.disabled):hover .wrapper {
+  opacity: 0.8;
+  background-color: #4a84c8;
+  box-shadow: 0 0px 4px 0 rgba(0, 0, 0, 0.25), 0 1px 0px 0 rgba(0, 0, 0, 0.25);
+}
+.landing .box.disabled {
+  opacity: 0.2;
+}
+.landing .box.disabled .wrapper a {
+  cursor: not-allowed;
+}
+.landing .box .wrapper {
+  transition: 100ms ease-in-out background-color;
+  background-color: #3b79c2;
+  border-radius: 4px;
+  position: relative;
+  text-align: center;
+  overflow: hidden;
+}
+.landing .box .wrapper .fa {
+  margin-right: 5px;
+  font-size: 21px;
+}
+.landing .box .wrapper a {
+  text-decoration: none;
+  margin: 0px;
+  color: white;
+  border: none;
+  font-size: 24px;
+  padding: 10px;
+  height: 150px;
+  padding-top: 60px;
+  display: block;
+}
+.nav-subs {
+  position: absolute;
+  margin-top: 0px;
+  margin-left: 0px;
+  background-color: #edf1f2;
+  padding: 0px;
+  border-radius: 4px;
+}
+.nav-subs li a {
+  padding: 6px 10px;
+}
+#loginForm {
+  background: repeating-linear-gradient(45deg, white, white 10px, #fcfcfc 10px, #fcfcfc 20px);
+}
+#login-form .input-sm {
+  box-shadow: none;
+  border-color: #F0F3F4;
+  border-radius: 0px;
+  background-color: white;
+}
+#login-form #forgetPassword {
+  color: #3b79c2;
+  padding-top: 6px;
+  display: block;
+  border-bottom: 1px solid #3b79c2;
+  padding-bottom: 2px;
+  margin-left: 5px;
+}
+#login-form #forgetPassword:hover,
+#login-form #forgetPassword:active,
+#login-form #forgetPassword:focus {
+  text-decoration: none;
+}
+#login-form #btnLogin {
+  border-radius: 0px;
+}
+#login-form .footnote {
+  margin-top: 0px;
 }

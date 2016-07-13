@@ -23,13 +23,14 @@ rpt.filter = [
 	{ _id: 'geo', group: 'Geographical', sub: [
 		{ _id: 'Zone', from: 'Zone', title: 'Zone' },
 		{ _id: 'Region', from: 'Region', title: 'Region' },
-		{ _id: 'Area', from: 'Area', title: 'Area' }
+		{ _id: 'Area', from: 'MasterArea', title: 'City' }
 	] },
 	{ _id: 'customer', group: 'Customer', sub: [
 		{ _id: 'ChannelC', from: 'Channel', title: 'Channel' },
 		{ _id: 'KeyAccount', from: 'KeyAccount', title: 'Key Account' },
 		{ _id: 'CustomerGroup', from: 'CustomerGroup', title: 'Group' },
-		{ _id: 'Customer', from: 'Customer', title: 'Outlet' }
+		{ _id: 'Customer', from: 'Customer', title: 'Outlet' },
+		{ _id: 'Distributor', from: 'MasterDistributor', title: 'Distributor' }
 	] },
 	{ _id: 'product', group: 'Product', sub: [
 		{ _id: 'HBrandCategory', from: 'HBrandCategory', title: 'Group' },
@@ -142,6 +143,7 @@ rpt.getFilterValue = (multiFiscalYear = false, fiscalField = rpt.value.FiscalYea
 		{ 'Field': 'customer.keyaccount', 'Op': '$in', 'Value': rpt.value.KeyAccount() },
 		{ 'Field': 'customer.customergroup', 'Op': '$in', 'Value': rpt.value.CustomerGroup() },
 		{ 'Field': 'customer.name', 'Op': '$in', 'Value': rpt.value.Customer() },
+		{ 'Field': 'customer.reportsubchannel', 'Op': '$in', 'Value': rpt.value.Distributor() },
 
 		{ 'Field': 'product.brandcategoryid', 'Op': '$in', Value: rpt.value.HBrandCategory() },
 		// ---> Brand OK
@@ -318,6 +320,17 @@ rpt.getOtherMasterData = () => {
 	})
 }
 
+rpt.isEmptyData = (res) => {
+	// return false
+
+	if (res.Data.length == 0) {
+		toolkit.showError('The UI data is not ready')
+		return true
+	}
+
+	return false
+}
+
 rpt.groupGeoBy = (raw, category) => {
 	let groupKey = (category == 'Area') ? '_id' : category
 	let data = Lazy(raw)
@@ -332,7 +345,7 @@ rpt.filterMultiSelect = (d) => {
 	let config = {
 		filter: 'contains',
 		placeholder: 'Choose items ...',
-		change: rpt.eventChange[d._id],
+		// change: rpt.eventChange[d._id],
 		value: rpt.value[d._id]
 	}
 
@@ -369,7 +382,7 @@ rpt.filterMultiSelect = (d) => {
 			},
 			value: rpt.value[d._id]
 		})
-	} else if (['Branch', 'Brand', 'HCostCenterGroup', 'Entity', 'Channel', 'HBrandCategory', 'Product', 'Type', 'KeyAccount', 'CustomerGroup', 'LedgerAccount'].indexOf(d.from) > -1) {
+	} else if (['Branch', 'Brand', 'MasterArea', 'MasterDistributor', 'HCostCenterGroup', 'Entity', 'Channel', 'HBrandCategory', 'Product', 'Type', 'KeyAccount', 'CustomerGroup', 'LedgerAccount'].indexOf(d.from) > -1) {
 		config = $.extend(true, config, {
 			data: rpt.masterData[d._id],
 			dataValueField: '_id',
@@ -401,7 +414,7 @@ rpt.filterMultiSelect = (d) => {
 				rpt.masterData[d._id].push({ _id: "OTHER", Name: "OTHER" })
 			}
 		})
-	} else if (['Region', 'Area', 'Zone'].indexOf(d.from) > -1) {
+	} else if (['Region', /* 'Area', */ 'Zone'].indexOf(d.from) > -1) {
 		config = $.extend(true, config, {
 			data: rpt.masterData[d._id],
 			dataValueField: '_id',
@@ -418,7 +431,7 @@ rpt.filterMultiSelect = (d) => {
 
 				rpt.masterData.geographi(_.sortBy(res.data, (d) => d.Name));
 
-				['Region', 'Area', 'Zone'].forEach((e) => {
+				['Region', /* 'Area', */ 'Zone'].forEach((e) => {
 					let res = rpt.groupGeoBy(rpt.masterData.geographi(), e)
 					rpt.masterData[e](_.sortBy(res, (d) => d.Name))
 					rpt.masterData[e].push({ _id: "OTHER", Name: "OTHER" })
@@ -576,6 +589,10 @@ rpt.tabbedContent = () => {
 
 
 rpt.plmodels = ko.observableArray([])
+rpt.allowedPL = ko.computed(() => {
+	let plmodels = ["PL0", "PL6A", "PL7A", "PL8", "PL7", "PL8A", "PL6", "PL2", "PL1", "PL14A", "PL14", "PL9", "PL74A", "PL74", "PL21", "PL74B", "PL74C", "PL23", "PL26A", "PL25", "PL32A", "PL31", "PL31E", "PL31D", "PL31C", "PL31B", "PL31A", "PL29A", "PL29A32", "PL29A31", "PL29A30", "PL29A29", "PL29A27", "PL29A26", "PL29A25", "PL29A24", "PL29A23", "PL29A22", "PL29A20", "PL29A19", "PL29A18", "PL29A17", "PL29A16", "PL29A15", "PL29A14", "PL29A13", "PL29A12", "PL29A11", "PL29A10", "PL29A9", "PL29A8", "PL29A6", "PL29A5", "PL29A4", "PL29A3", "PL29A2", "PL28", "PL28I", "PL28G", "PL28F", "PL28E", "PL28D", "PL28C", "PL28B", "PL28A", "PL32B", "PL94A", "PL94B", "PL44B", "PL44", "PL43", "PL42", "PL44C", "PL44E", "PL44D", "PL44F"]
+	return rpt.plmodels().filter((d) => plmodels.indexOf(d._id) > -1)
+}, rpt.plmodels)
 rpt.idarrayhide = ko.observableArray(['PL44A'])
 
 rpt.prepareEvents = () => {
@@ -649,13 +666,13 @@ rpt.showZeroValue = (a) => {
 }
 
 rpt.arrChangeParent = ko.observableArray([
-	{ idfrom: 'PL6A', idto: '', after: 'PL0'},
-	{ idfrom: 'PL1', idto: 'PL8A', after: 'PL8A'},
-	{ idfrom: 'PL2', idto: 'PL8A', after: 'PL8A'},
-	{ idfrom: 'PL3', idto: 'PL8A', after: 'PL8A'},
-	{ idfrom: 'PL4', idto: 'PL8A', after: 'PL8A'},
-	{ idfrom: 'PL5', idto: 'PL8A', after: 'PL8A'},
-	{ idfrom: 'PL6', idto: 'PL8A', after: 'PL8A'}
+	{ idfrom: 'PL1', idto: 'PL0', after: 'PL0'},
+	{ idfrom: 'PL7', idto: 'PL0', after: 'PL1'},
+	{ idfrom: 'PL2', idto: 'PL0', after: 'PL7'},
+	{ idfrom: 'PL8', idto: 'PL0', after: 'PL2'},
+	{ idfrom: 'PL6', idto: 'PL0', after: 'PL8'},
+
+	{ idfrom: 'PL7A', idto: '', after: 'PL6'},
 ])
 
 // rpt.arrFormulaPL = ko.observableArray([
@@ -692,33 +709,49 @@ rpt.changeParent = (elemheader, elemcontent, PLCode) => {
 }
 
 rpt.fixRowValue = (data) => {
+	return
+	
 	data.forEach((e,a) => {
 		rpt.arrFormulaPL().forEach((d) => {
 			// let total = toolkit.sum(d.formula, (f) => e[f])
 			let total = 0
+			let isNotNumber = false
+
 			d.formula.forEach((f, l) => {
+				let eachValue = e[f]
+
+				if (!toolkit.typeIs(eachValue, "number")) {
+					eachValue = toolkit.getNumberFromString(eachValue)
+					isNotNumber = true
+				}
+
 				if (l == 0) {
-					total = e[f]
+					total = eachValue
 				} else {
 					if (d.cal == 'sum') {
-						total += e[f]
+						total += eachValue
 					} else {
-						total -= e[f]
+						total -= eachValue
 					}
 				}
 			})
+
+			if (isNotNumber) {
+				total = `${kendo.toString(total, 'n2')} %`
+			}
 
 			data[a][d.id] = total
 		})
 	})
 	// console.log(data)
-
 }
 
 rpt.buildGridLevels = (rows) => {
-	let grouppl1 = _.map(_.groupBy(rpt.plmodels(), (d) => {return d.PLHeader1}), (k , v) => { return { data: k, key:v}})
-	let grouppl2 = _.map(_.groupBy(rpt.plmodels(), (d) => {return d.PLHeader2}), (k , v) => { return { data: k, key:v}})
-	let grouppl3 = _.map(_.groupBy(rpt.plmodels(), (d) => {return d.PLHeader3}), (k , v) => { return { data: k, key:v}})
+	let plmodels = rpt.plmodels()
+
+	let grouppl1 = _.map(_.groupBy(plmodels, (d) => {return d.PLHeader1}), (k , v) => { return { data: k, key:v}})
+	let grouppl2 = _.map(_.groupBy(plmodels, (d) => {return d.PLHeader2}), (k , v) => { return { data: k, key:v}})
+	let grouppl3 = _.map(_.groupBy(plmodels, (d) => {return d.PLHeader3}), (k , v) => { return { data: k, key:v}})
 
 	let $trElem, $columnElem
 	let resg1, resg2, resg3, PLyo, PLyo2, child = 0, parenttr = 0, textPL
@@ -834,8 +867,16 @@ rpt.buildGridLevels = (rows) => {
 	})
 
 	rpt.showZeroValue(false)
+	rpt.hideSubGrowthValue()
 	$(".pivot-pnl .table-header tr:not([idparent]):not([idcontparent])").addClass('bold')
 	rpt.refreshHeight()
+}
+
+rpt.hideSubGrowthValue = () => {
+	toolkit.repeat(8, (i) => {
+		$(`[idheaderpl="PL${i + 1}"] td:contains("%")`).html('&nbsp;')
+		$(`[idpl="PL${i + 1}"] td:contains("%")`).html('&nbsp;')
+	})
 }
 
 rpt.hideAllChild = (PLCode) => {

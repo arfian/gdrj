@@ -2,6 +2,7 @@ package gdrj
 
 import (
 	"errors"
+
 	"github.com/eaciit/orm/v1"
 	"github.com/eaciit/toolkit"
 )
@@ -14,6 +15,7 @@ type PLModel struct {
 	PLHeader2     string
 	PLHeader3     string
 	Amount        float64
+	GLReff        string
 }
 
 func (t *PLModel) RecordID() interface{} {

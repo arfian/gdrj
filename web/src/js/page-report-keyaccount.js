@@ -55,6 +55,11 @@ kac.refresh = (useCache = false) => {
 				return
 			}
 
+			if (rpt.isEmptyData(res)) {
+				kac.contentIsLoading(false)
+				return
+			}
+
 			let date = moment(res.time).format("dddd, DD MMMM YYYY HH:mm:ss")
 			kac.breakdownNote(`Last refreshed on: ${date}`)
 
@@ -312,11 +317,7 @@ kac.render = () => {
 	})
 	
 	let plmodels = _.sortBy(rpt.plmodels(), (d) => parseInt(d.OrderIndex.replace(/PL/g, '')))
-	let exceptions = [
-		"PL94C" /* "Operating Income" */, 
-		"PL39B" /* "Earning Before Tax" */, 
-		"PL41C" /* "Earning After Tax" */,
-	]
+	let exceptions = ["PL94C" /* "Operating Income" */, "PL39B" /* "Earning Before Tax" */, "PL41C" /* "Earning After Tax" */, "PL6A" /* "Discount" */]
 	let netSalesPLCode = 'PL8A'
 	let netSalesPlModel = rpt.plmodels().find((d) => d._id == netSalesPLCode)
 	let netSalesRow = {}
@@ -367,8 +368,10 @@ kac.render = () => {
 		let TotalPercentage = (d.PNLTotal / TotalNetSales) * 100;
 		if (TotalPercentage < 0)
 			TotalPercentage = TotalPercentage * -1 
-		rows[e].Percentage = TotalPercentage
+		rows[e].Percentage = toolkit.number(TotalPercentage)
 	})
+
+	let percentageWidth = 110
 
 	let wrapper = toolkit.newEl('div')
 		.addClass('pivot-pnl')
@@ -403,7 +406,10 @@ kac.render = () => {
 		.appendTo(trHeader1)
 
 	toolkit.newEl('th')
-		.html('%')
+		.html('% of Net Sales')
+		.css('font-weight', 'normal')
+		.css('font-style', 'italic')
+		.width(percentageWidth - 20)
 		.addClass('align-right')
 		.appendTo(trHeader1)
 
@@ -411,7 +417,6 @@ kac.render = () => {
 		.appendTo(tableContent)
 
 	let colWidth = 160
-	let colPercentWidth = 60
 	let totalWidth = 0
 	let pnlTotalSum = 0
 
@@ -433,12 +438,15 @@ kac.render = () => {
 			.width(colWidth)
 
 		toolkit.newEl('th')
-			.html('%')
+			.html('% of Net Sales')
+			.css('font-weight', 'normal')
+			.css('font-style', 'italic')
+			.width(percentageWidth)
 			.addClass('align-right cell-percentage')
 			.appendTo(trContent1)
-			.width(colPercentWidth)
+			.width(percentageWidth)
 
-		totalWidth += colWidth + colPercentWidth
+		totalWidth += colWidth + percentageWidth
 	})
 	// console.log('data ', data)
 
@@ -453,6 +461,7 @@ kac.render = () => {
 		let trHeader = toolkit.newEl('tr')
 			.addClass(`header${PL}`)
 			.attr(`idheaderpl`, PL)
+			.attr(`data-row`, `row-${i}`)
 			.appendTo(tableHeader)
 
 		trHeader.on('click', () => {
@@ -476,6 +485,7 @@ kac.render = () => {
 
 		let trContent = toolkit.newEl('tr')
 			.addClass(`column${PL}`)
+			.attr(`data-row`, `row-${i}`)
 			.attr(`idpl`, PL)
 			.appendTo(tableContent)
 

@@ -1,4 +1,4 @@
 rm -rf gdrj
-go build
+go build -o gdrj
 echo '' > log.txt
 sudo ./gdrj > log.txt &

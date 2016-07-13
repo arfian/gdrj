@@ -17,38 +17,45 @@
                                 <!-- create process loader here -->
                                 <form class="form form-horizontal fh" id="login-form" novalidate>
                                     <center id="head-top">
-                                        <div class="login-logo"></div>
+                                        <div class="login-logo" style="background-image: url({{BaseUrl}}res/img/logo.png);"></div>
                                         <div data-bind="html: lg.ErrorMessage, visible:(lg.errorMessage != '')" id="error-message"></div>
                                      </center>
 
                                     <div class="form-group login-form-group">
-                                        <label class="col-sm-12 form-login-label">Login ID</label>
+                                        <label class="col-sm-12 form-login-label">Username</label>
                                         <div class="col-sm-12">
-                                            <input type="text" class="form-control input-sm full-width" id="username" name="username" placeholder="Login ID" data-bind="value: lg.configLogin.username"  required />
+                                            <input type="text" class="form-control input-sm full-width" id="username" name="username" placeholder="Type username here" data-bind="value: lg.configLogin.username"  required />
                                             <span class="k-invalid-msg" data-for="username"></span>
                                         </div>
                                     </div>
                                     <div class="form-group login-form-group">
                                         <label class="col-sm-12 form-login-label">Password</label>
                                         <div class="col-sm-12">
-                                            <input type="password" class="form-control input-sm full-width" id="password" name="password" placeholder="Your Password" data-bind="value: lg.configLogin.password"  required />
+                                            <input type="password" class="form-control input-sm full-width" id="password" name="password" placeholder="Type password here" data-bind="value: lg.configLogin.password"  required />
                                             <span class="k-invalid-msg" data-for="password"></span>
                                         </div>
                                     </div>
                                     <div class="form-group login-form-group">
+
                                         <div class="col-sm-12">
-                                            <button class="btn btn-sm btn-primary full-width" id="btnLogin" data-bind="click: lg.getLogin">Login</button>
-                                            <div class="form-login-forgot">
-                                                <a id="forgetPassword" data-bind="click: lg.showAccesReset">Can't access your account?</a>
+                                            <div class="pull-left">
+                                                <a id="forgetPassword" href="#" data-bind="click: lg.showAccesReset">
+                                                    Can't access your account?
+                                                </a>
+                                            </div>
+                                            <div class="pull-right">
+                                                <button class="btn btn-sm btn-primary" id="btnLogin" data-bind="click: lg.getLogin">
+                                                    Login
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="form-group login-form-group">
-                                        <label class="label label-danger form-login-label"></label>
+                                    <div class="footnote">
+                                        © 2016 EACIIT Pte Ltd
                                     </div>
                                 </form>
                             </div>
-                            <div class="login-bg col-md-9">
+                            <div class="login-bg col-md-9" style="background-image: url('{{BaseUrl}}res/img/photo-1456735190827-d1262f71b8a3.jpeg')">
                                &nbsp;
                             </div>
                         </div>

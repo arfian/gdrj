@@ -1,3 +1,3 @@
 # GDRJ
 
-Crafted with ♥ by EACIIT EFS & UI Team
+Crafted with ♥ by EACIIT Engineers

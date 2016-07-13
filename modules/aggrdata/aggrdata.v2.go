@@ -20,6 +20,7 @@ var (
 	fiscalyear int
 	data       map[string]float64
 	mutex      = &sync.Mutex{}
+	tablename  string
 )
 
 func setinitialconnection() {
@@ -42,6 +43,7 @@ func main() {
 	t0 = time.Now()
 	data = make(map[string]float64)
 	flag.IntVar(&fiscalyear, "year", 2015, "YYYY representation of godrej fiscal year. Default is 2015")
+	flag.StringVar(&tablename, "table", "salespls", "Source Table")
 	flag.Parse()
 
 	setinitialconnection()
@@ -104,7 +106,7 @@ func workerproc(wi int, filter *dbox.Filter, result chan<- toolkit.M) {
 	tkm := toolkit.M{}
 
 	csr, _ := workerconn.NewQuery().Select("date.fiscal", "pldatas").
-		From("salespls-1").
+		From(tablename).
 		Where(filter).
 		Cursor(nil)
 
@@ -123,7 +125,6 @@ func workerproc(wi int, filter *dbox.Filter, result chan<- toolkit.M) {
 		spl := new(gdrj.SalesPL)
 		e := csr.Fetch(spl, 1, false)
 		if e != nil {
-			toolkit.Println("EOF")
 			break
 		}
 

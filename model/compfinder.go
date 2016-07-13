@@ -206,11 +206,10 @@ func (s *CompFinderParam) GetCompTableName() {
 		if ok {
 			s.Tablename = col.GetString("table")
 			break
-		} else {
-			toolkit.Println("\n+++++++++++++++++++ CREATING A NEW COLLECTION +++++++++++++++")
 		}
 	}
 
+	toolkit.Println("\n+++++++++++++++++++ CREATING A NEW COLLECTION +++++++++++++++")
 	tableName := toolkit.Sprintf("comp_%s", filterList)
 	s.Tablename = tableName
 }

@@ -5,83 +5,116 @@ var cst = viewModel.customtable;
 
 cst.contentIsLoading = ko.observable(false);
 cst.title = ko.observable('Custom Analysis');
-cst.row = ko.observableArray(['pnl']);
-cst.column = ko.observableArray(['product.brand', 'customer.channelname']);
-cst.breakdownvalue = ko.observable([]);
 cst.fiscalYear = ko.observable(rpt.value.FiscalYear());
 cst.data = ko.observableArray([]);
-cst.dataPoints = ko.observableArray([]);
-cst.dataMeasures = ko.observableArray([]);
-cst.optionDimensionSelect = ko.observableArray([]);
-cst.datapnl = ko.observableArray([]);
 
-cst.columnrow = [{ name: "P&L Item", field: "pnl" },
-// {name: "Calculated ratios", field: ""},
-{ name: "Channel", field: "customer.channelname", title: "customer_channelname" }, { name: "RD by distributor name", field: "" }, { name: "GT by GT category", field: "" }, { name: "Branch", field: "customer.branchname", title: "customer_branchname" }, { name: "Customer Group", field: "customer.keyaccount", title: "customer_keyaccount" }, { name: "Key Account", field: "customer.customergroup", title: "customer.customergroup" }, // filter keyaccount = KIY
-{ name: "Brand", field: "product.brand", title: "product_brand" }, { name: "Zone", field: "customer.zone", title: "customer_zone" }, { name: "Region", field: "customer.region", title: "customer_region" }, { name: "City", field: "customer.areaname", title: "customer_areaname" }, { name: "Time", field: "date", title: "date" }];
+cst.optionDimensionPNL = ko.observableArray([]);
+cst.dimensionPNL = ko.observable([]);
 
-cst.breakdownby = ko.observableArray([]);
-cst.optionRows = ko.observableArray(cst.columnrow);
-cst.optionColumns = ko.observableArray(cst.columnrow);
+cst.optionRowColumn = ko.observableArray([{ _id: 'row', Name: 'Row' }, { _id: 'column', Name: 'Column' }]);
+cst.rowColumn = ko.observable('row');
+cst.sortOrder = ko.observable('desc');
 
-cst.selectfield = function () {
+cst.optionSortOrders = ko.observableArray([{ field: 'asc', name: 'Smallest to largest' }, { field: 'desc', name: 'Largest to smallest' }]);
+
+cst.optionDimensionBreakdown = ko.observableArray([{ name: "Channel", field: "customer.channelname", title: "customer_channelname" }, { name: "RD by RD category", field: "customer.reportsubchannel|I1", filter: { Op: "$in", Field: "customer.channelname", Value: ["I1"] } }, { name: "GT by GT category", field: "customer.reportsubchannel|I2", filter: { Op: "$in", Field: "customer.channelname", Value: ["I2"] } }, { name: "MT by MT category", field: "customer.reportsubchannel|I3", filter: { Op: "$in", Field: "customer.channelname", Value: ["I3"] } }, { name: "IT by IT category", field: "customer.reportsubchannel|I4", filter: { Op: "$in", Field: "customer.channelname", Value: ["I4"] } }, { name: "Branch", field: "customer.branchname", title: "customer_branchname" }, { name: "Customer Group", field: "customer.keyaccount", title: "customer_keyaccount" }, { name: "Key Account", field: "customer.customergroup", title: "customer_customergroupname" }, { name: "Brand", field: "product.brand", title: "product_brand" }, { name: "Zone", field: "customer.zone", title: "customer_zone" }, { name: "Region", field: "customer.region", title: "customer_region" }, { name: "City", field: "customer.areaname", title: "customer_areaname" }, { name: "Date Month", field: "date.month", title: "date_month" }, { name: "Date Quarter", field: "date.quartertxt", title: "date_quartertxt" }]);
+cst.breakdown = ko.observableArray(['customer.channelname']); // , 'customer.reportsubchannel|I3'])
+cst.putTotalOf = ko.observable('customer.channelname'); // reportsubchannel')
+
+cst.isDimensionNotContainDate = ko.computed(function () {
+	if (cst.breakdown().indexOf('date.month') > -1) {
+		return false;
+	}
+	if (cst.breakdown().indexOf('date.quartertxt') > -1) {
+		return false;
+	}
+	return true;
+}, cst.breakdown);
+
+cst.isDimensionNotContainChannel = ko.computed(function () {
+	return cst.breakdown().filter(function (d) {
+		return d.indexOf('|') > -1;
+	}).length == 0;
+}, cst.breakdown);
+
+cst.optionDimensionBreakdownForTotal = ko.computed(function () {
+	return cst.optionDimensionBreakdown().filter(function (d) {
+		return cst.breakdown().indexOf(d.field) > -1;
+	});
+}, cst.breakdown);
+
+cst.changeBreakdown = function () {
 	setTimeout(function () {
-		var columndata = $.extend(true, [], cst.columnrow);
-		var rowdata = $.extend(true, [], cst.columnrow);
-		if (cst.column().length > 0) {
-			if (cst.column()[0] == "pnl") {
-				columndata = _.find(columndata, function (e) {
-					return e.field == 'pnl';
-				});
-				cst.optionColumns([columndata]);
-			} else {
-				columndata = _.remove(columndata, function (d) {
-					return d.field != 'pnl';
-				});
-				cst.optionColumns(columndata);
-			}
-		} else {
-			cst.optionColumns(columndata);
+		cst.putTotalOf('');
+
+		if (cst.breakdown().indexOf(cst.putTotalOf()) == -1) {
+			cst.putTotalOf('');
 		}
-		if (cst.row().length > 0) {
-			if (cst.row()[0] == 'pnl') {
-				rowdata = _.find(rowdata, function (e) {
-					return e.field == 'pnl';
-				});
-				cst.optionRows([rowdata]);
-			} else {
-				rowdata = _.remove(rowdata, function (d) {
-					return d.field != 'pnl';
-				});
-				cst.optionRows(rowdata);
-			}
-		} else {
-			cst.optionRows(rowdata);
+		if (cst.breakdown().filter(function (d) {
+			return d.indexOf('|') > -1;
+		}).length > 0) {
+			cst.putTotalOf('customer.reportsubchannel');
 		}
-		// let columndata = $.extend(true, [], cst.columnrow)
-		// let rowdata = $.extend(true, [], cst.columnrow)
-		// for (var i in cst.row()) {
-		// 	columndata = _.remove(columndata, (d) => { return d.field != cst.row()[i] })
-		// }
-		// for (var i in cst.column()) {
-		// 	rowdata = _.remove(rowdata, (d) => { return d.field != cst.column()[i] })
-		// }
-		// cst.optionRows(rowdata)
-		// cst.optionColumns(columndata)
-	}, 100);
+	}, 300);
+};
+
+cst.breakdownClean = function () {
+	var groups = [];
+
+	cst.breakdown().forEach(function (d) {
+		var dimension = d;
+
+		if (d.indexOf('|') > -1) {
+			dimension = d.split('|')[0];
+		}
+
+		if (groups.indexOf(dimension) == -1) {
+			if (dimension == 'customer.reportsubchannel') {
+				groups = groups.filter(function (e) {
+					return e != 'customer.channelname';
+				});
+				groups.push('customer.channelname');
+			}
+
+			groups.push(dimension);
+		}
+	});
+
+	return groups;
 };
 
 cst.refresh = function () {
-	var param = {};
-	var groups = ['date.fiscal'].concat(cst.row().concat(cst.column()).filter(function (d) {
-		return d != 'pnl';
-	}));
+	if (cst.breakdown().length == 0) {
+		toolkit.showError('At least one breakdown is required');
+		return;
+	}
 
-	param.pls = cst.breakdownvalue();
+	var param = {};
+	var groups = ['date.fiscal'].concat(cst.breakdownClean());
+
+	param.pls = cst.dimensionPNL();
 	param.flag = '';
 	param.groups = groups;
 	param.aggr = 'sum';
 	param.filters = rpt.getFilterValue(false, cst.fiscalYear);
+
+	var subchannels = [];
+
+	cst.optionDimensionBreakdown().filter(function (d) {
+		return cst.breakdown().indexOf(d.field) > -1;
+	}).filter(function (d) {
+		return d.hasOwnProperty('filter');
+	}).forEach(function (d) {
+		subchannels = subchannels.concat(d.filter.Value);
+	});
+
+	if (subchannels.length > 0) {
+		param.filters.push({
+			Field: 'customer.channelname',
+			Op: '$in',
+			Value: subchannels
+		});
+	}
 
 	var fetch = function fetch() {
 		app.ajaxPost(viewModel.appName + "report/getpnldatanew", param, function (res) {
@@ -92,20 +125,25 @@ cst.refresh = function () {
 				return;
 			}
 
+			if (rpt.isEmptyData(res)) {
+				cst.contentIsLoading(false);
+				return;
+			}
+
 			cst.contentIsLoading(false);
 
 			rpt.plmodels(res.Data.PLModels);
 			cst.data(res.Data.Data);
 
-			var opl1 = _.orderBy(rpt.plmodels(), function (d) {
+			var opl1 = _.orderBy(rpt.allowedPL(), function (d) {
 				return d.OrderIndex;
 			});
 			var opl2 = _.map(opl1, function (d) {
 				return { field: d._id, name: d.PLHeader3 };
 			});
-			cst.optionDimensionSelect(opl2);
-			if (cst.breakdownvalue().length == 0) {
-				cst.breakdownvalue(['PL8A', "PL7", "PL74B", "PL74C", "PL94A", "PL44B", "PL44C"]);
+			cst.optionDimensionPNL(opl2);
+			if (cst.dimensionPNL().length == 0) {
+				cst.dimensionPNL(['PL8A', "PL7", "PL74B", "PL44B"]);
 			}
 
 			cst.build();
@@ -119,30 +157,48 @@ cst.refresh = function () {
 };
 
 cst.build = function () {
-	var keys = cst.breakdownvalue();
+	var breakdown = cst.breakdownClean();
+	console.log('breakdown', breakdown);
+
+	var keys = _.orderBy(cst.dimensionPNL(), function (d) {
+		var plmodel = rpt.allowedPL().find(function (e) {
+			return e._id == d;
+		});
+		return plmodel != undefined ? plmodel.OrderIndex : '';
+	}, 'asc');
+
 	var all = [];
-	var columns = cst.column().map(function (d) {
-		return toolkit.replace(d, '.', '_');
-	});
-	var rows = cst.row().map(function (d) {
-		return toolkit.replace(d, '.', '_');
-	});
+	var columns = [];
+	var rows = [];
+
+	if (cst.rowColumn() == 'row') {
+		columns = breakdown.map(function (d) {
+			return toolkit.replace(d, '.', '_');
+		});
+		rows = ['pnl'].map(function (d) {
+			return toolkit.replace(d, '.', '_');
+		});
+	} else {
+		columns = ['pnl'].map(function (d) {
+			return toolkit.replace(d, '.', '_');
+		});
+		rows = breakdown.map(function (d) {
+			return toolkit.replace(d, '.', '_');
+		});
+	}
 
 	// BUILD WELL STRUCTURED DATA
 
 	var allRaw = [];
 	cst.data().forEach(function (d) {
 		var o = {};
-		var isPnlOnRow = rows.find(function (e) {
-			return e == 'pnl';
-		}) != undefined;
 
 		for (var key in d._id) {
 			if (d._id.hasOwnProperty(key)) {
 				o[toolkit.replace(key, '_id_', '')] = d._id[key];
 			}
 		}keys.map(function (e) {
-			var pl = rpt.plmodels().find(function (g) {
+			var pl = rpt.allowedPL().find(function (g) {
 				return g._id == e;
 			});
 			var p = toolkit.clone(o);
@@ -176,16 +232,117 @@ cst.build = function () {
 
 		col.rows = _.orderBy(col.rows, function (d) {
 			return d.value;
-		}, 'desc');
+		}, cst.sortOrder());
 		all.push(col);
 	});
 
 	all = _.orderBy(all, function (d) {
-		return toolkit.sum(d.rows, function (e) {
-			return e.value;
-		});
-	}, 'desc');
+		return d.rows.length > 0 ? d.rows[0].value : d;
+	}, cst.sortOrder());
 
+	// REORDER
+
+	if (breakdown.indexOf('date.month') > -1) {
+		all = _.orderBy(all, function (d) {
+			return parseInt(d.date_month, 10);
+		}, 'asc'); // cst.sortOrder())
+
+		all.forEach(function (d) {
+			var m = d.date_month - 1 + 3;
+			var y = parseInt(cst.fiscalYear().split('-')[0], 0);
+
+			d.date_month = moment(new Date(2015, m, 1)).format("MMMM YYYY");
+		});
+	} else if (breakdown.indexOf('date.quartertxt') > -1) {
+		all = _.orderBy(all, function (d) {
+			return d.date_quartertxt;
+		}, 'asc'); // cst.sortOrder())
+	}
+
+	// INJECT TOTAL
+	if (cst.putTotalOf() != '') {
+		(function () {
+			var group = breakdown.slice(0, breakdown.indexOf(cst.putTotalOf()));
+			var groupOther = breakdown.filter(function (d) {
+				return group.indexOf(d) == -1 && d != cst.putTotalOf();
+			});
+			var allCloned = [];
+			var cache = {};
+
+			// console.log("cst.breakdown", breakdown)
+			// console.log("group", group)
+			// console.log("groupOther", groupOther)
+
+			all.forEach(function (d, i) {
+				var currentKey = group.map(function (f) {
+					return d[toolkit.replace(f, '.', '_')];
+				}).join('_');
+
+				if (!cache.hasOwnProperty(currentKey)) {
+					(function () {
+						var currentData = all.filter(function (f) {
+							var targetKey = group.map(function (g) {
+								return f[toolkit.replace(g, '.', '_')];
+							}).join('_');
+							return targetKey == currentKey;
+						});
+
+						if (currentData.length > 0) {
+							(function () {
+								var sample = currentData[0];
+								var o = {};
+								o[toolkit.replace(cst.putTotalOf(), '.', '_')] = 'Total';
+								o.rows = [];
+
+								group.forEach(function (g) {
+									o[toolkit.replace(g, '.', '_')] = sample[toolkit.replace(g, '.', '_')];
+								});
+
+								groupOther.forEach(function (g) {
+									o[toolkit.replace(g, '.', '_')] = '&nbsp;';
+								});
+
+								sample.rows.forEach(function (g, b) {
+									var row = {};
+									row.pnl = g.pnl;
+									row.value = toolkit.sum(currentData, function (d) {
+										return d.rows[b].value;
+									});
+									o.rows.push(row);
+								});
+
+								o.rows = _.orderBy(o.rows, function (d) {
+									var pl = rpt.allowedPL().find(function (g) {
+										return g.PLHeader3 == d.pnl;
+									});
+									if (pl != undefined) {
+										return pl.OrderIndex;
+									}
+
+									return '';
+								}, 'asc');
+
+								allCloned.push(o);
+							})();
+						}
+
+						console.log('---currentKey', currentKey);
+						console.log('---currentData', currentData);
+
+						cache[currentKey] = true;
+					})();
+				}
+
+				allCloned.push(d);
+			});
+
+			all = allCloned;
+		})();
+	}
+
+	console.log('columns', columns);
+	console.log('plmodels', rpt.allowedPL());
+	console.log('keys', keys);
 	console.log("all", all);
 
 	// PREPARE TEMPLATE
@@ -218,6 +375,10 @@ cst.build = function () {
 			return toolkit.return({ key: k, val: v });
 		});
 
+		// console.log('columns', columns)
+		// console.log('op1', op1)
+		// console.log('op2', op2)
+
 		var op3 = op2.forEach(function (g) {
 			var k = g.key,
 			    v = g.val;
@@ -238,279 +399,89 @@ cst.build = function () {
 
 	// GENERATE TABLE CONTENT HEADER
 
-	columns.forEach(function (d) {
-		groupThenLoop(all, columns, function (groups) {
-			var rowHeader = tableContent.find('tr[data-key=' + groups.length + ']');
-			if (rowHeader.size() == 0) {
-				rowHeader = toolkit.newEl('tr').appendTo(tableContent).attr('data-key', groups.length);
+	// columns.forEach((d) => {
+	groupThenLoop(all, columns, function (groups) {
+		var rowHeader = tableContent.find('tr[data-key=' + groups.length + ']');
+		if (rowHeader.size() == 0) {
+			rowHeader = toolkit.newEl('tr').appendTo(tableContent).attr('data-key', groups.length);
+		}
+
+		return rowHeader;
+	}, function (groups, counter, what, k, v) {
+		var tdHeaderTableContent = toolkit.newEl('td').addClass('align-center title').html(k).width(tableHeaderWidth).appendTo(what);
+
+		if (v.length > 1) {
+			tdHeaderTableContent.attr('colspan', v.length);
+		}
+
+		if (k.length > 15) {
+			tdHeaderTableContent.width(columnWidth + 50);
+			totalWidth += 50;
+		}
+
+		totalWidth += columnWidth;
+	}, function (groups, counter, what, k, v) {
+		// GENERATE CONTENT OF TABLE HEADER & TABLE CONTENT
+
+		groupThenLoop(v[0].rows, rows, app.noop, app.noop /* {
+                                                    w.forEach((x) => {
+                                                    let key = [k, String(counter)].join('_')
+                                                    console.log(k, counter, x, x, key)
+                                                    let rowTrContentHeader = tableHeader.find(`tr[data-key=${key}]`)
+                                                    if (rowTrContentHeader.size() == 0) {
+                                                    rowTrContentHeader = toolkit.newEl('tr')
+                                                    .appendTo(tableHeader)
+                                                    .attr('data-key', key)
+                                                    }
+                                                    let rowTdContentHeader = tableHeader.find(`tr[data-key=${key}]`)
+                                                    if (rowTdContentHeader.size() == 0) {
+                                                    rowTdContentHeader = toolkit.newEl('tr')
+                                                    .appendTo(rowTrContentHeader)
+                                                    .attr('data-key', key)
+                                                    }
+                                                    })
+                                                    } */, function (groups, counter, what, k, v) {
+			var key = rows.map(function (d) {
+				return v[0][d];
+			}).join("_");
+
+			var rowTrHeader = tableHeader.find('tr[data-key="' + key + '"]');
+			if (rowTrHeader.size() == 0) {
+				rowTrHeader = toolkit.newEl('tr').appendTo(tableHeader).attr('data-key', key);
 			}
 
-			return rowHeader;
-		}, function (groups, counter, what, k, v) {
-			var tdHeaderTableContent = toolkit.newEl('td').addClass('align-center title').html(k).width(tableHeaderWidth).appendTo(what);
+			// console.log("-------", rows)
 
-			if (v.length > 1) {
-				tdHeaderTableContent.attr('colspan', v.length);
-			}
-
-			if (k.length > 15) {
-				tdHeaderTableContent.width(columnWidth + 50);
-				totalWidth += 50;
-			}
-
-			totalWidth += columnWidth;
-		}, function (groups, counter, what, k, v) {
-			// GENERATE CONTENT OF TABLE HEADER & TABLE CONTENT
-
-			groupThenLoop(v[0].rows, rows, app.noop, app.noop /* {
-                                                     w.forEach((x) => {
-                                                     let key = [k, String(counter)].join('_')
-                                                     console.log(k, counter, x, x, key)
-                                                     let rowTrContentHeader = tableHeader.find(`tr[data-key=${key}]`)
-                                                     if (rowTrContentHeader.size() == 0) {
-                                                     rowTrContentHeader = toolkit.newEl('tr')
-                                                     .appendTo(tableHeader)
-                                                     .attr('data-key', key)
-                                                     }
-                                                     let rowTdContentHeader = tableHeader.find(`tr[data-key=${key}]`)
-                                                     if (rowTdContentHeader.size() == 0) {
-                                                     rowTdContentHeader = toolkit.newEl('tr')
-                                                     .appendTo(rowTrContentHeader)
-                                                     .attr('data-key', key)
-                                                     }
-                                                     })
-                                                     } */, function (groups, counter, what, k, v) {
-				var key = rows.map(function (d) {
-					return v[0][d];
-				}).join("_");
-
-				var rowTrHeader = tableHeader.find('tr[data-key="' + key + '"]');
-				if (rowTrHeader.size() == 0) {
-					rowTrHeader = toolkit.newEl('tr').appendTo(tableHeader).attr('data-key', key);
+			rows.forEach(function (e) {
+				var tdKey = [e, key].join('_');
+				var rowTdHeader = rowTrHeader.find('td[data-key="' + tdKey + '"]');
+				if (rowTdHeader.size() == 0) {
+					toolkit.newEl('td').addClass('title').appendTo(rowTrHeader).attr('data-key', tdKey).html(v[0][e]);
 				}
-
-				rows.forEach(function (e) {
-					var tdKey = [e, key].join('_');
-					var rowTdHeader = rowTrHeader.find('td[data-key="' + tdKey + '"]');
-					if (rowTdHeader.size() == 0) {
-						toolkit.newEl('td').addClass('title').appendTo(rowTrHeader).attr('data-key', tdKey).html(v[0][e]);
-					}
-				});
-
-				var rowTrContent = tableContent.find('tr[data-key="' + key + '"]');
-				if (rowTrContent.size() == 0) {
-					rowTrContent = toolkit.newEl('tr').appendTo(tableContent).attr('data-key', key);
-				}
-
-				var rowTdContent = toolkit.newEl('td').addClass('align-right').html(kendo.toString(v[0].value, 'n0')).appendTo(rowTrContent);
 			});
-		});
 
-		tableContent.width(totalWidth);
+			var rowTrContent = tableContent.find('tr[data-key="' + key + '"]');
+			if (rowTrContent.size() == 0) {
+				rowTrContent = toolkit.newEl('tr').appendTo(tableContent).attr('data-key', key);
+			}
+
+			var rowTdContent = toolkit.newEl('td').addClass('align-right').html(kendo.toString(v[0].value, 'n0')).appendTo(rowTrContent);
+		});
 	});
+
+	tableContent.width(totalWidth);
+	// })
 
 	var tableClear = toolkit.newEl('div').addClass('clearfix').appendTo(container);
 
 	container.height(tableContent.height());
 };
 
-cst.getpnl = function (datapl) {
-	datapl = _.filter(datapl, function (d) {
-		return d.PLHeader1 == d.PLHeader2 && d.PLHeader1 == d.PLHeader3;
-	});
-	var data = datapl.map(function (d) {
-		return app.o({ field: d._id, name: d.PLHeader3 });
-	});
-	data = _.sortBy(data, function (item) {
-		return [item.name];
-	});
-	cst.optionDimensionSelect(data);
-	cst.generatedatapl();
-};
-
-cst.generatedatapl = function () {
-	cst.datapnl([]);
-	var fielddimension = void 0;
-	for (var i in cst.breakdownvalue()) {
-		fielddimension = _.find(cst.optionDimensionSelect(), function (e) {
-			return e.field == cst.breakdownvalue()[i];
-		});
-		if (fielddimension != undefined) cst.datapnl.push(fielddimension);
-	}
-	if (cst.datapnl().length == 0) cst.datapnl(cst.optionDimensionSelect());
-
-	var data = _.map(cst.data(), function (d) {
-		var datanew = {},
-		    field = void 0,
-		    title = "",
-		    datapoint = void 0;
-		$.each(d, function (key, value) {
-			if (key != "_id") {
-				field = _.find(cst.datapnl(), function (e) {
-					return e.field == key;
-				});
-				if (field != undefined) {
-					datanew[key] = value;
-					datapoint = _.find(cst.dataPoints(), function (e) {
-						return e.field == key;
-					});
-					if (datapoint == undefined) cst.dataPoints.push({ field: key, title: field.name });
-				}
-			}
-		});
-		$.each(d._id, function (key, value) {
-			title = key.substring(4, key.length);
-			datanew[title] = value;
-		});
-
-		return datanew;
-	});
-	cst.changecolumnrow(data);
-};
-
-cst.changecolumnrow = function (data) {
-	var row = cst.row().find(function (e) {
-		return e == 'pnl';
-	}),
-	    newdata = [],
-	    fieldchange = {},
-	    datapoint = void 0;
-	if (row != undefined) {
-		data.forEach(function (e, a) {
-			cst.dataPoints().forEach(function (d) {
-				fieldchange = {};
-				fieldchange['pnl'] = d.title;
-				fieldchange['date_fiscal'] = e['date_fiscal'];
-				cst.column().forEach(function (f, i) {
-					var field = toolkit.replace(f, '.', '_');
-					fieldchange[e[field]] = e[d.field];
-					datapoint = _.find(cst.dataMeasures(), function (g) {
-						return g.field == e[field];
-					});
-					if (datapoint == undefined) cst.dataMeasures.push({ field: e[field], title: e[field] });
-				});
-				newdata.push(fieldchange);
-			});
-		});
-		var grouppnl = _.groupBy(newdata, function (d) {
-			return d.pnl;
-		});
-		newdata = [];
-		$.each(grouppnl, function (key, value) {
-			fieldchange = {};
-			for (var i in value) {
-				$.each(value[i], function (key2, value2) {
-					if (key2 != 'pnl' && key2 != 'date_fiscal') {
-						if (fieldchange[key2] == undefined) fieldchange[key2] = value2;else fieldchange[key2] += value2;
-					}
-				});
-				fieldchange['date_fiscal'] = value[i]['date_fiscal'];
-			}
-			fieldchange['pnl'] = key;
-			newdata.push(fieldchange);
-		});
-	} else {
-		cst.dataMeasures(cst.dataPoints());
-		newdata = data;
-	}
-	console.log(newdata, data);
-	cst.render(newdata);
-};
-
-cst.render = function (resdata) {
-	console.log('data', resdata);
-	var schemaModelFields = {},
-	    schemaCubeDimensions = {},
-	    schemaCubeMeasures = {},
-	    columns = [],
-	    rows = [],
-	    measures = [],
-	    choose = '';
-
-	// let data = _.sortBy(cst.data(), (d) => toolkit.redefine(d[toolkit.replace(cst.column(), '.', '_')], ''))
-	var data = cst.data();
-
-	cst.row().forEach(function (d, i) {
-		var row = cst.optionRows().find(function (e) {
-			return e.field == d && e.field != 'pnl';
-		});
-		if (row != undefined) {
-			var field = toolkit.replace(row.field, '.', '_');
-			schemaModelFields[field] = { type: 'string', field: field };
-			rows.push({ name: field, expand: i == 0 });
-		} else {
-			choose = 'row';
-			rows.push({ name: 'pnl', expand: true });
-			schemaModelFields['pnl'] = { type: 'string', field: 'pnl' };
-		}
-	});
-
-	cst.column().forEach(function (d, i) {
-		var column = cst.optionColumns().find(function (e) {
-			return e.field == d && e.field != 'pnl';
-		});
-		if (choose == '') {
-			if (column != undefined) {
-				var field = toolkit.replace(column.field, '.', '_');
-				schemaModelFields[field] = { type: 'string', field: field };
-				columns.push({ name: field, expand: i == 0 });
-			} else {
-				choose = 'column';
-				columns.push({ name: 'pnl', expand: true });
-				schemaModelFields['pnl'] = { type: 'string', field: 'pnl' };
-			}
-		}
-	});
-	console.log(columns);
-
-	cst.dataMeasures().forEach(function (d) {
-		var field = toolkit.replace(d.field, '.', '_');
-		schemaModelFields[field] = { type: 'number' };
-		schemaCubeDimensions[field] = { caption: d.title };
-
-		schemaCubeMeasures[d.title] = { field: field, format: '{0:c}', aggregate: 'sum' };
-		measures.push(d.title);
-	});
-
-	// console.log("schemaModelFields ", schemaModelFields)
-	// console.log("schemaCubeDimensions ", schemaCubeDimensions)
-	// console.log("schemaCubeMeasures ", schemaCubeMeasures)
-	// console.log("measures ", measures)
-	// console.log("columns ", columns)
-	// console.log("rows ", rows)
-	var config = {
-		filterable: false,
-		reorderable: false,
-		dataCellTemplate: function dataCellTemplate(d) {
-			return '<div class="align-right">' + kendo.toString(d.dataItem.value, "n2") + '</div>';
-		},
-		columnWidth: 130,
-		dataSource: {
-			data: resdata,
-			schema: {
-				model: {
-					fields: schemaModelFields
-				},
-				cube: {
-					dimensions: schemaCubeDimensions,
-					measures: schemaCubeMeasures
-				}
-			},
-			columns: columns,
-			rows: rows,
-			measures: measures
-		}
-	};
-	console.log(ko.toJSON(config));
-	$('.pivot').replaceWith('<div class="pivot ez"></div>');
-	$('.pivot').kendoPivotGrid(config);
-};
-
 vm.currentMenu('Analysis');
 vm.currentTitle('Custom Analysis');
-vm.breadcrumb([{ title: 'Godrej', href: '#' }, { title: 'Custom Analysis', href: '#' }]);
+vm.breadcrumb([{ title: 'Godrej', href: viewModel.appName + 'page/landing' }, { title: 'Home', href: viewModel.appName + 'page/landing' }, { title: 'Custom Analysis', href: '#' }]);
 
-cst.title('Custom Analysis');
+cst.title('&nbsp;');
 
 $(function () {
 	cst.refresh();

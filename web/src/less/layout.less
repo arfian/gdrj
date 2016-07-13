@@ -306,22 +306,22 @@ html, body{
 }
 
 .login-bg{
-	background: #007dba url('/res/img/bg_city.JPG') no-repeat center top;
+	background: #007dba no-repeat center top;
 	background-size: cover;
 	height: 100vh;
 	z-index: 99;
 }
 
 .login-logo{
-	background: url('/res/img/logo.png') no-repeat center top;
+	background: no-repeat center top;
 	width: 150px;
 	height: 90px;
 	background-size: 145px 74px;
-	margin-bottom: 30px;
+	margin: 80px 0px 40px;
 }
 
 .login-logo-reset{
-	background: url('/res/img/logo.png') no-repeat center top;
+	background: no-repeat center top;
 	width: 99px;
 	height: 90px;
 	background-size: 99px 90px;
@@ -337,9 +337,10 @@ html, body{
 	font-style: italic;
 	font-size: 11px;
 }
-.fh{
+.fh {
 	margin: auto;
-	padding: 15%;
+	width: 200px;
+    padding-top: 0px;
 }
 
 .report-module-rsec{
@@ -639,13 +640,13 @@ html, body{
 		position: absolute;
 		left: 0;
 		top: 0;
-		width: 365px;
+		width: 420px;
 		border-right: 1px solid @color-base-grey;
 	}
 
 	.table-content {
 		overflow-x: scroll;
-		margin-left: 365px;
+		margin-left: 420px;
 	}
 
 	table {
@@ -966,6 +967,8 @@ html, body{
 	    }
 
 	    &.disabled {
+	    	opacity: 0.2;
+	    	
 	    	.wrapper {
 	    		a {
 	    			cursor: not-allowed;
@@ -1019,5 +1022,39 @@ html, body{
 		a {
 			padding: 6px 10px;
 		}
+	}
+}
+
+#loginForm {
+	background: repeating-linear-gradient(45deg, white, white 10px, #fcfcfc 10px, #fcfcfc 20px)
+}
+
+#login-form {
+	.input-sm {
+		box-shadow: none;
+	    border-color: #F0F3F4;
+	    border-radius: 0px;
+	    background-color: white;
+	}
+
+	#forgetPassword {
+		color: @color-base-blue;
+	    padding-top: 6px;
+	    display: block;
+	    border-bottom: 1px solid @color-base-blue;
+	    padding-bottom: 2px;
+	    margin-left: 5px;
+
+		&:hover,&:active,&:focus {
+			text-decoration: none;
+		}
+	}
+
+	#btnLogin {
+	    border-radius: 0px;
+	}
+
+	.footnote {
+		margin-top: 0px;
 	}
 }

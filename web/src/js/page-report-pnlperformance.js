@@ -23,6 +23,18 @@ bkd.breakdownBranch_ChannelRDNonRD = ko.observable('')
 bkd.breakdownBranch_SubChannel = ko.observable('')
 
 bkd.changeTo = (d, title) => {
+	if (d == 'summary') {
+		setTimeout(() => {
+			$('#summary').find('.k-grid').each((i, e) => {
+				$(e).data('kendoGrid').refresh()
+			})
+			$('#summary').find('.k-chart').each((i, e) => {
+				$(e).data('kendoChart').redraw()
+			})
+		}, 300)
+		return
+	}
+
 	bkd.breakdownBy(d)
 	bkd.title(title)
 	bkd.refresh()
@@ -180,6 +192,11 @@ bkd.refresh = (useCache = false) => {
 				setTimeout(() => {
 					fetch()
 				}, 1000 * 5)
+				return
+			}
+
+			if (rpt.isEmptyData(res)) {
+				bkd.contentIsLoading(false)
 				return
 			}
 
@@ -611,6 +628,8 @@ bkd.render = () => {
 
 	// ========================= TABLE STRUCTURE
 
+	let percentageWidth = 110
+
 	let wrapper = toolkit.newEl('div')
 		.addClass('pivot-pnl-branch pivot-pnl')
 		.appendTo($('.breakdown-view'))
@@ -651,10 +670,13 @@ bkd.render = () => {
 		.appendTo(trHeader)
 
 	toolkit.newEl('th')
-		.html('%')
+		.html('% of Net Sales')
 		.css('height', `${34 * bkd.level()}px`)
-		.attr('data-rowspan', bkd.level())
 		.css('vertical-align', 'middle')
+		.css('font-weight', 'normal')
+		.css('font-style', 'italic')
+		.width(percentageWidth - 20)
+		.attr('data-rowspan', bkd.level())
 		.addClass('cell-percentage-header align-right')
 		.appendTo(trHeader)
 
@@ -673,7 +695,6 @@ bkd.render = () => {
 	let totalColumnWidth = 0
 	let pnlTotalSum = 0
 	let dataFlat = []
-	let percentageWidth = 80
 
 	let countWidthThenPush = (thheader, each, key) => {
 		let currentColumnWidth = each._id.length * (bkd.isBreakdownChannel() ? 10 : 6)
@@ -704,9 +725,11 @@ bkd.render = () => {
 
 			totalColumnWidth += percentageWidth
 			let thheader1p = toolkit.newEl('th')
-				.html('%')
+				.html('% of Net Sales')
 				.width(percentageWidth)
 				.addClass('align-center')
+				.css('font-weight', 'normal')
+				.css('font-style', 'italic')
 				.appendTo(trContents[0])
 
 			return
@@ -724,9 +747,11 @@ bkd.render = () => {
 
 				totalColumnWidth += percentageWidth
 				let thheader1p = toolkit.newEl('th')
-					.html('%')
+					.html('% of Net Sales')
 					.width(percentageWidth)
 					.addClass('align-center')
+					.css('font-weight', 'normal')
+					.css('font-style', 'italic')
 					.appendTo(trContents[1])
 
 				return
@@ -742,7 +767,7 @@ bkd.render = () => {
 	// ========================= CONSTRUCT DATA
 	
 	let plmodels = _.sortBy(rpt.plmodels(), (d) => parseInt(d.OrderIndex.replace(/PL/g, '')))
-	let exceptions = ["PL94C" /* "Operating Income" */, "PL39B" /* "Earning Before Tax" */, "PL41C" /* "Earning After Tax" */]
+	let exceptions = ["PL94C" /* "Operating Income" */, "PL39B" /* "Earning Before Tax" */, "PL41C" /* "Earning After Tax" */, "PL6A" /* "Discount" */]
 	let netSalesPLCode = 'PL8A'
 	let netSalesRow = {}
 	let rows = []
@@ -798,7 +823,7 @@ bkd.render = () => {
 		let TotalPercentage = (d.PNLTotal / TotalNetSales) * 100;
 		if (TotalPercentage < 0)
 			TotalPercentage = TotalPercentage * -1 
-		rows[e].Percentage = TotalPercentage
+		rows[e].Percentage = toolkit.number(TotalPercentage)
 	})
 
 
@@ -1019,7 +1044,7 @@ dsbrd.optionStructures = ko.observableArray([
 	{ field: "date.month", name: "Month" }
 ])
 dsbrd.structure = ko.observable(dsbrd.optionStructures()[0].field)
-dsbrd.structureYear = ko.observable('date.year')
+// dsbrd.structureYear = ko.observable('date.year')
 dsbrd.optionBreakdownValues = ko.observableArray([])
 dsbrd.breakdownValue = ko.observableArray([])
 dsbrd.breakdownValueAll = { _id: 'All', Name: 'All' }
@@ -1111,9 +1136,9 @@ dsbrd.refresh = () => {
 		})
 	}
 
-	if (dsbrd.structure() == 'date.month') {
-		param.groups.push(dsbrd.structureYear())
-	}
+	// if (dsbrd.structure() == 'date.month') {
+	// 	param.groups.push(dsbrd.structureYear())
+	// }
 
 	let fetch = () => {
 		toolkit.ajaxPost(viewModel.appName + "report/getpnldatanew", param, (res) => {
@@ -1121,7 +1146,12 @@ dsbrd.refresh = () => {
 				setTimeout(() => { fetch() }, 1000 * 5)
 				return
 			}
-			console.log(res)
+
+			if (rpt.isEmptyData(res)) {
+				dsbrd.contentIsLoading(false)
+				return
+			}
+
 			dsbrd.contentIsLoading(false)
 			dsbrd.render(res)
 		}, () => {
@@ -1158,7 +1188,7 @@ dsbrd.render = (res) => {
 			let columnAfter = {
 				breakdownTitle: toolkit.redefine(column._id[`_id_${toolkit.replace(dsbrd.breakdown(), '.', '_')}`]), 
 				structureTitle: toolkit.redefine(column._id[`_id_${toolkit.replace(dsbrd.structure(), '.', '_')}`]), 
-				structureYearTitle: toolkit.redefine(column._id[`_id_${toolkit.replace(dsbrd.structureYear(), '.', '_')}`]), 
+				titleYear: parseInt(toolkit.redefine(column._id[`_id_date_fiscal`], '').split('-')[0], 10), 
 				original: toolkit.sum(row.plcodes, (plcode) => toolkit.number(column[plcode])),
 				value: toolkit.sum(row.plcodes, (plcode) => toolkit.number(column[plcode])),
 			}
@@ -1212,7 +1242,11 @@ dsbrd.render = (res) => {
 		}
 
 		if (dsbrd.structure() == 'date.month') {
-			column.titleYear = $.trim(columnInfo.structureYearTitle)
+			let m = parseInt(column.title, 10) - 1 + 3
+			let y = columnInfo.titleYear
+
+			column.order = y * 100 + parseInt(column.title, 10)
+			column.title = moment(new Date(y, m, 1)).format('MMMM YYYY')
 		}
 
 		columnData.push(column)
@@ -1220,20 +1254,6 @@ dsbrd.render = (res) => {
 
 	let op1 = _.groupBy(columnData, (d) => d.breakdown)
 	let op2 = _.map(op1, (v, k) => { 
-		v.forEach((h) => {
-			h.month = h.title
-			h.year = h.titleYear
-
-			if (dsbrd.structure() == 'date.month') {
-				let month = moment(new Date(2015, parseInt(h.title, 10) - 1, 1)).format('MMMM')
-				h.title = month
-
-				if (rpt.value.FiscalYears().length > 1) {
-					h.title = `${month} ${h.titleYear}`
-				}
-			}
-		})
-
 		return { 
 			title: ($.trim(k) == '' ? '' : k), 
 			columns: v,
@@ -1245,38 +1265,32 @@ dsbrd.render = (res) => {
 
 	let columnGrouped = _.sortBy(op2, (d) => d.title)
 
-	op2.forEach((d) => {
-		d.columns = _.sortBy(d.columns, (e) => {
-			if (dsbrd.structure() == 'date.month') {
-				let monthString = `0${e.month}`.split('').reverse().slice(0, 2).reverse().join('')
-				
-				if (rpt.value.FiscalYears().length > 1) {
-					let yearMonthString = `${e.year}${monthString}`
-					return yearMonthString
-				}
-
-				return monthString
-			}
-
-			return e.title
-		})
-	})
-
 	if (columnGrouped.length > 0) {
 		columnsPlaceholder[0].locked = true
 		columnsPlaceholder[1].locked = true
 	}
 
 	columnGrouped = _.orderBy(columnGrouped, (d) => {
-		let value = 0
-		let dataColumn = rowsAfter[0].columnData
-			.find((e) => $.trim(e.breakdownTitle) == $.trim(d.title))
-		if (typeof dataColumn != 'undefined') {
-			value = dataColumn.value
+		let dataColumns = rowsAfter[0].columnData
+			.filter((e) => $.trim(e.breakdownTitle) == $.trim(d.title))
+		if (dataColumns.length > 0) {
+			return toolkit.sum(dataColumns, (e) => e.value)
 		}
 
-		return value
+		return 0
 	}, 'desc')
+
+	columnGrouped.forEach((d) => {
+		if (dsbrd.structure() == 'date.month') {
+			d.columns = _.orderBy(d.columns, (e) => e.order, 'asc')
+		}
+
+		if (dsbrd.structure() == 'date.quartertxt') {
+			d.columns = _.orderBy(d.columns, (e) => e.title, 'asc')
+		}
+
+		d.columns = _.orderBy(d.columns, (e) => e.value, 'desc')
+	})
 
 	dsbrd.data(rowsAfter)
 	dsbrd.columns(columnsPlaceholder.concat(columnGrouped))
@@ -1381,8 +1395,10 @@ rs.optionTimeSubBreakdowns = ko.computed(() => {
 			})
 		break;
 		case 'date.month': 
+			let y = parseInt(rs.fiscalYear().split('-')[0])
 			return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((d) => {
-				return { field: d, name: moment(new Date(2015, d, 0)).format('MMMM') }
+				let m = d - 1 + 3
+				return { field: d, name: moment(new Date(y, m, 0)).format('MMMM YYYY') }
 			})
 		break;
 		default: return []; break;
@@ -1442,6 +1458,11 @@ rs.refresh = (useCache = false) => {
 				setTimeout(() => {
 					fetch()
 				}, 1000 * 5)
+				return
+			}
+
+			if (rpt.isEmptyData(res)) {
+				rs.contentIsLoading(false)
 				return
 			}
 
@@ -1533,27 +1554,37 @@ rs.generateReport = (title, raw) => {
 	let data = []
 	let multiplier = (sumNetSales == 0 ? 1 : sumNetSales)
 
+	let safe = (d) => Math.abs(toolkit.number(d))
+
 	dataAllPNL.forEach((d, i) => {
 		let category = d._id[`_id_${app.idAble(breakdown)}`]
 		let order = category
 
 		if (breakdown == 'date.month') {
-			category = moment(new Date(2015, category - 1, 1)).format('MMMM')
+			let y = d._id[`_id_date_fiscal`].split('-')[0]
+			let m = parseInt(category) - 1 + 3
+
+			order = y * 100 + parseInt(category)
+			category = moment(new Date(y, m, 1)).format('MMMM YYYY')
 		}
 
 		data.push({
 			valueNetSales: dataAllPNLNetSales[i].value,
 			category: category,
 			order: order,
-			valuePNL: Math.abs(d.value),
-			valuePNLPercentage: Math.abs(d.value / dataAllPNLNetSales[i].value * 100),
-			avgPNL: Math.abs(avgPNL),
-			avgPNLPercentage: Math.abs(avgPNL / multiplier * 100),
+			valuePNL: safe(d.value),
+			valuePNLPercentage: safe(d.value / dataAllPNLNetSales[i].value * 100),
+			avgPNL: safe(avgPNL),
+			avgPNLPercentage: safe(avgPNL / multiplier * 100),
 		})
 	})
 
-	if (breakdown == 'date.month') {
+	if (breakdown == 'date.quartertxt') {
+		data = _.orderBy(data, (d) => d.order, 'asc')
+	} else if (breakdown == 'date.month') {
 		data = _.orderBy(data, (d) => parseInt(d.order, 10), 'asc')
+	} else if (breakdown == 'date.fiscal') {
+		data = _.orderBy(data, (d) => d.order.split('-')[0], 'asc')
 	} else {
 		data = _.orderBy(data, (d) => d.valuePNLPercentage, 'desc')
 	}
@@ -1711,6 +1742,11 @@ rank.refresh = () => {
 				return
 			}
 
+			if (rpt.isEmptyData(res)) {
+				rank.contentIsLoading(false)
+				return
+			}
+
 			rank.contentIsLoading(false)
 			rank.render(breakdown, res)
 		}, () => {
@@ -1734,10 +1770,10 @@ rank.render = (breakdown, res) => {
 			row.original = ''
 			row.pnl = ''
 		}
-		if (breakdown == 'date.month') {
-			row.original = (parseInt(row.pnl, 10) - 1)
-			row.pnl = moment(new Date(2015, row.original, 1)).format('MMMM')
-		}
+		// if (breakdown == 'date.month') {
+		// 	row.original = (parseInt(row.pnl, 10) - 1)
+		// 	row.pnl = moment(new Date(2015, row.original, 1)).format('MMMM')
+		// }
 
 
 		row.gmPercentage = toolkit.number(d.PL74C / d.PL8A) * 100
@@ -1783,25 +1819,10 @@ vm.breadcrumb([
 	{ title: 'P&L Performance', href: '#' }
 ])
 
-bkd.title('P&L Summary')
+bkd.title('P&L by Channels')
 rs.title('P&L Comparison to Net Sales')
 
 rpt.refresh = () => {
-	rpt.tabbedContent()
-	rpt.refreshView('analysis')
-
-	rs.getSalesHeaderList()
-
-	bkd.changeBreakdown()
-	setTimeout(() => {
-		bkd.breakdownValue(['All'])
-		bkd.refresh(false)
-	}, 200)
-
-	rpt.prepareEvents()
-}
-
-$(() => {
 	bkd.changeBreakdown()
 	setTimeout(() => {
 		bkd.breakdownValue(['All'])
@@ -1816,4 +1837,10 @@ $(() => {
 	
 	rs.getSalesHeaderList()
 	rank.refresh()
+
+	rpt.prepareEvents()
+}
+
+$(() => {
+	rpt.refresh()
 })

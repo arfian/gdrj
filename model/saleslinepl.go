@@ -18,7 +18,7 @@ type PLData struct {
 type SalesLineRatio struct {
 	Global, GlobalVdist, Branch, Brand, SKUID, ChannelID                       float64
 	Month, MonthVdist, MonthSKUID, MonthChannel, MonthBranch, MonthVdistBranch float64
-	MonthChannelBrand                                                          float64
+	MonthChannelBrand, MonthBrand                                              float64
 }
 
 type SalesPL struct {
@@ -105,6 +105,10 @@ func SaveDiv(a float64, b float64) float64 {
 func (pl *SalesPL) RatioCalc(masters toolkit.M) {
 
 	tratio := new(SalesLineRatio)
+	if strings.Contains(pl.ID, "SALES-ADJUST") {
+		pl.Ratio = tratio
+		return
+	}
 	tratio.Global = SaveDiv(pl.GrossAmount, masters.GetFloat64("globalgross"))
 	tratio.GlobalVdist = SaveDiv(pl.GrossAmount, masters.GetFloat64("globalgrossvdist"))
 
@@ -159,6 +163,12 @@ func (pl *SalesPL) RatioCalc(masters toolkit.M) {
 		gdt := masters["grossbymonthbrandchannel"].(toolkit.M)
 		key := toolkit.Sprintf("%d_%d_%s_%s", pl.Date.Year, pl.Date.Month, pl.Product.Brand, pl.Customer.ChannelID)
 		tratio.MonthChannelBrand = SaveDiv(pl.GrossAmount, gdt.GetFloat64(key))
+	}
+
+	if masters.Has("grossbymonthbrand") {
+		gdt := masters["grossbymonthbrand"].(toolkit.M)
+		key := toolkit.Sprintf("%d_%d_%s", pl.Date.Year, pl.Date.Month, pl.Product.Brand)
+		tratio.MonthBrand = SaveDiv(pl.GrossAmount, gdt.GetFloat64(key))
 	}
 
 	pl.Ratio = tratio
@@ -504,16 +514,20 @@ func (pl *SalesPL) CalcSales(masters toolkit.M) {
 	pl.PLDatas = aplmodel
 
 	switch {
-	case pl.Customer.IsRD:
-		pl.AddData("PL2", pl.GrossAmount, plmodels)
-		pl.AddData("PL8", -pl.DiscountAmount, plmodels)
+	case pl.Customer.IsRD == true:
+		if strings.Contains(pl.ID, "RD-DISC_") {
+			pl.AddData("PL8", pl.GrossAmount, plmodels)
+		} else {
+			pl.AddData("PL2", pl.GrossAmount, plmodels)
+			pl.AddData("PL8", pl.DiscountAmount, plmodels)
+		}
 	case strings.Contains(pl.ID, "EXPORT"):
 		pl.AddData("PL6", pl.GrossAmount, plmodels)
 	// case strings.Contains(pl.ID, "DISCOUNT"):
 	// 	pl.AddData("PL7A", pl.GrossAmount, plmodels)
 	default:
 		pl.AddData("PL1", pl.GrossAmount, plmodels)
-		pl.AddData("PL7", -pl.DiscountAmount, plmodels)
+		pl.AddData("PL7", pl.DiscountAmount, plmodels)
 	}
 }
 
@@ -704,6 +718,7 @@ func (pl *SalesPL) CalcDamage(masters toolkit.M) {
 
 	plmodels := masters.Get("plmodel").(map[string]*PLModel)
 	pl.AddData("PL44", d*pl.Ratio.Month, plmodels)
+	// pl.AddData("PL44", -d*pl.Ratio.Month, plmodels)
 }
 
 func (pl *SalesPL) CalcRoyalties(masters toolkit.M) {
@@ -736,6 +751,72 @@ func (pl *SalesPL) CalcRoyalties(masters toolkit.M) {
 	plmodels := masters.Get("plmodel").(map[string]*PLModel)
 	// pl.AddData("PL25", -r*pl.Ratio.Month, plmodels)
 	pl.AddData("PL25", -royalsamount*2.85900895*pl.Ratio.Global, plmodels)
+}
+
+func (pl *SalesPL) CalcRoyalties2016(masters toolkit.M) {
+	// if !masters.Has("royalties") {
+	// 	return
+	// }
+
+	netsalesamount := float64(0)
+	arrnetsales := []string{"PL1", "PL2", "PL3", "PL4", "PL5", "PL6", "PL7", "PL8", "PL7A"}
+	found := func(str string) bool {
+		for _, v := range arrnetsales {
+			if v == str {
+				return true
+			}
+		}
+		return false
+	}
+
+	aplmodel := pl.PLDatas
+	for k, v := range aplmodel {
+		if k == "PL25" {
+			delete(aplmodel, k)
+		}
+
+		if found(k) {
+			netsalesamount += v.Amount
+		}
+	}
+
+	pl.PLDatas = aplmodel
+
+	plmodels := masters.Get("plmodel").(map[string]*PLModel)
+	pl.AddData("PL25", -netsalesamount*0.0285214610603953, plmodels)
+}
+
+func (pl *SalesPL) CalcRoyalties2015(masters toolkit.M) {
+	// if !masters.Has("royalties") {
+	// 	return
+	// }
+
+	netsalesamount := float64(0)
+	arrnetsales := []string{"PL1", "PL2", "PL3", "PL4", "PL5", "PL6", "PL7", "PL8", "PL7A"}
+	found := func(str string) bool {
+		for _, v := range arrnetsales {
+			if v == str {
+				return true
+			}
+		}
+		return false
+	}
+
+	aplmodel := pl.PLDatas
+	for k, v := range aplmodel {
+		if k == "PL25" {
+			delete(aplmodel, k)
+		}
+
+		if found(k) {
+			netsalesamount += v.Amount
+		}
+	}
+
+	pl.PLDatas = aplmodel
+
+	plmodels := masters.Get("plmodel").(map[string]*PLModel)
+	pl.AddData("PL25", -netsalesamount*0.0282568801711491, plmodels)
 }
 
 //== OLD Fix Calculate Royalties
@@ -819,8 +900,8 @@ func (pl *SalesPL) CalcPromo(masters toolkit.M) {
 
 	promos := masters.Get("promos").(map[string]toolkit.M)
 
-	find := func(x string) toolkit.M {
-		id := toolkit.Sprintf("%d_%d_%s", pl.Date.Year, pl.Date.Month, x)
+	find := func(id string) toolkit.M {
+		// id := toolkit.Sprintf("%d_%d_%s", pl.Date.Year, pl.Date.Month, x)
 		tkm, exist := promos[id]
 		if exist {
 			return tkm
@@ -828,13 +909,19 @@ func (pl *SalesPL) CalcPromo(masters toolkit.M) {
 		return toolkit.M{}
 	}
 
-	fpromo := find("promo")
-	fadv := find("adv")
-	fspg := find("spg")
+	fpromo := find(toolkit.Sprintf("%d_%d_%s", pl.Date.Year, pl.Date.Month, "promo"))
+	fadv := find(toolkit.Sprintf("%d_%d_%s", pl.Date.Year, pl.Date.Month, "adv"))
+	fadvbrand := find(toolkit.Sprintf("%d_%d_%s_%s", pl.Date.Year, pl.Date.Month, strings.TrimSpace(strings.ToUpper(pl.Product.Brand)), "adv"))
+	fspg := find(toolkit.Sprintf("%d_%d_%s", pl.Date.Year, pl.Date.Month, "spg"))
 
 	for key, v := range fadv {
 		fv := toolkit.ToFloat64(v, 6, toolkit.RoundingAuto)
 		pl.AddData(key, -pl.Ratio.Month*fv, plmodels)
+	}
+
+	for key, v := range fadvbrand {
+		fv := toolkit.ToFloat64(v, 6, toolkit.RoundingAuto)
+		pl.AddData(key, -pl.Ratio.MonthBrand*fv, plmodels)
 	}
 
 	for key, v := range fpromo {

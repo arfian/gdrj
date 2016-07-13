@@ -24,6 +24,7 @@ var (
 	globalval                         float64
 	mapkeysvalue                      map[string]float64
 	masters                           toolkit.M
+	tablename                         = "salespls-1"
 )
 
 func setinitialconnection() {
@@ -165,9 +166,11 @@ func main() {
 		tcustomer.ChannelName = "MT"
 		tcustomer.CustomerGroup = "MD"
 		tcustomer.CustomerGroupName = "Modern Market"
-
+		//s.Customer.ID, s.Product.ID, s.PC.ID, s.CC.ID
 		spl := new(gdrj.SalesPL)
 		spl.Date = gdrj.SetDate(Date)
+
+		spl.SKUID = "40011932"
 
 		spl.Customer = tcustomer
 		spl.Product = tproduct
@@ -181,10 +184,16 @@ func main() {
 
 		// plmodels := masters.Get("plmodel").(map[string]*gdrj.PLModel)
 		spl.CleanAndClasify(masters)
+		spl.RatioCalc(masters)
 		spl.CalcSales(masters)
+		spl.CalcRoyalties2016(masters)
 		spl.CalcSum(masters)
 
-		gdrj.Save(spl)
+		spl.ID = toolkit.Sprintf("%s-%s/2015-2016/%s/%d", spl.Ref, spl.Source, spl.SKUID, i)
+
+		// gdrj.Save(spl)
+		conn.NewQuery().From(tablename).
+			Save().Exec(toolkit.M{}.Set("data", spl))
 
 		toolkit.Printfn("Saving %d of %d in %s", i, 12,
 			time.Since(t0).String())
@@ -193,3 +202,6 @@ func main() {
 	toolkit.Printfn("Processing done in %s",
 		time.Since(t0).String())
 }
+
+//3520055976
+// -value=3520055982 -year=2016

@@ -1,88 +1,133 @@
 viewModel.customtable = new Object()
 let cst = viewModel.customtable
 
+
+
 cst.contentIsLoading = ko.observable(false)
 cst.title = ko.observable('Custom Analysis')
-cst.row = ko.observableArray(['pnl'])
-cst.column = ko.observableArray(['product.brand', 'customer.channelname'])
-cst.breakdownvalue = ko.observable([])
 cst.fiscalYear = ko.observable(rpt.value.FiscalYear())
 cst.data = ko.observableArray([])
-cst.dataPoints = ko.observableArray([])
-cst.dataMeasures = ko.observableArray([])
-cst.optionDimensionSelect = ko.observableArray([])
-cst.datapnl = ko.observableArray([])
 
-cst.columnrow = [
-	{name: "P&L Item", field: "pnl"},
-	// {name: "Calculated ratios", field: ""},
-	{name: "Channel", field: "customer.channelname", title: "customer_channelname"},
-	{name: "RD by distributor name", field: ""},
-	{name: "GT by GT category", field: ""},
-	{name: "Branch", field: "customer.branchname", title: "customer_branchname"},
-	{name: "Customer Group", field: "customer.keyaccount", title: "customer_keyaccount"},
-	{name: "Key Account", field: "customer.customergroup", title: "customer.customergroup"}, // filter keyaccount = KIY
-	{name: "Brand", field: "product.brand", title: "product_brand"},
-	{name: "Zone", field: "customer.zone", title: "customer_zone"},
-	{name: "Region", field: "customer.region", title: "customer_region"},
-	{name: "City", field: "customer.areaname", title: "customer_areaname"},
-	{name: "Time", field: "date", title: "date"},
-]
+cst.optionDimensionPNL = ko.observableArray([])
+cst.dimensionPNL = ko.observable([])
 
-cst.breakdownby = ko.observableArray([])
-cst.optionRows = ko.observableArray(cst.columnrow)
-cst.optionColumns = ko.observableArray(cst.columnrow)
+cst.optionRowColumn = ko.observableArray([
+	{ _id: 'row', Name: 'Row' },
+	{ _id: 'column', Name: 'Column' },
+])
+cst.rowColumn = ko.observable('row')
+cst.sortOrder = ko.observable('desc')
 
-cst.selectfield = () => {
+cst.optionSortOrders = ko.observableArray([
+	{ field: 'asc', name: 'Smallest to largest' },
+	{ field: 'desc', name: 'Largest to smallest' },
+])
+
+cst.optionDimensionBreakdown = ko.observableArray([
+	{ name: "Channel", field: "customer.channelname", title: "customer_channelname" },
+	{ name: "RD by RD category", field: "customer.reportsubchannel|I1", filter: { Op: "$in", Field: "customer.channelname", Value: ["I1"] } },
+	{ name: "GT by GT category", field: "customer.reportsubchannel|I2", filter: { Op: "$in", Field: "customer.channelname", Value: ["I2"] } },
+	{ name: "MT by MT category", field: "customer.reportsubchannel|I3", filter: { Op: "$in", Field: "customer.channelname", Value: ["I3"] } },
+	{ name: "IT by IT category", field: "customer.reportsubchannel|I4", filter: { Op: "$in", Field: "customer.channelname", Value: ["I4"] } },
+	{ name: "Branch", field: "customer.branchname", title: "customer_branchname" },
+	{ name: "Customer Group", field: "customer.keyaccount", title: "customer_keyaccount" },
+	{ name: "Key Account", field: "customer.customergroup", title: "customer_customergroupname" },
+	{ name: "Brand", field: "product.brand", title: "product_brand" },
+	{ name: "Zone", field: "customer.zone", title: "customer_zone" },
+	{ name: "Region", field: "customer.region", title: "customer_region" },
+	{ name: "City", field: "customer.areaname", title: "customer_areaname" },
+	{ name: "Date Month", field: "date.month", title: "date_month" },
+	{ name: "Date Quarter", field: "date.quartertxt", title: "date_quartertxt" },
+])
+cst.breakdown = ko.observableArray(['customer.channelname']) // , 'customer.reportsubchannel|I3'])
+cst.putTotalOf = ko.observable('customer.channelname') // reportsubchannel')
+
+cst.isDimensionNotContainDate = ko.computed(() => {
+	if (cst.breakdown().indexOf('date.month') > -1) {
+		return false
+	}
+	if (cst.breakdown().indexOf('date.quartertxt') > -1) {
+		return false
+	}
+	return true
+}, cst.breakdown)
+
+cst.isDimensionNotContainChannel = ko.computed(() => {
+	return (cst.breakdown().filter((d) => d.indexOf('|') > -1).length == 0)
+}, cst.breakdown)
+
+cst.optionDimensionBreakdownForTotal = ko.computed(() => {
+	return cst.optionDimensionBreakdown()
+		.filter((d) => cst.breakdown().indexOf(d.field) > -1)
+}, cst.breakdown)
+
+cst.changeBreakdown = () => {
 	setTimeout(() => {
-		let columndata = $.extend(true, [], cst.columnrow)
-		let rowdata = $.extend(true, [], cst.columnrow)
-		if (cst.column().length > 0){
-			if (cst.column()[0] == "pnl") {
-				columndata = _.find(columndata, (e) => { return e.field == 'pnl' })
-				cst.optionColumns([columndata])
-			} else {
-				columndata = _.remove(columndata, (d) => { return d.field != 'pnl' })
-				cst.optionColumns(columndata)
-			}
-		} else {
-			cst.optionColumns(columndata)
+		cst.putTotalOf('')
+
+		if (cst.breakdown().indexOf(cst.putTotalOf()) == -1) {
+			cst.putTotalOf('')
 		}
-		if (cst.row().length > 0) {
-			if (cst.row()[0] == 'pnl') {
-				rowdata = _.find(rowdata, (e) => { return e.field == 'pnl' })
-				cst.optionRows([rowdata])
-			} else {
-				rowdata = _.remove(rowdata, (d) => { return d.field != 'pnl' })
-				cst.optionRows(rowdata)
-			}
-		} else {
-			cst.optionRows(rowdata)
+		if (cst.breakdown().filter((d) => d.indexOf('|') > -1).length > 0) {
+			cst.putTotalOf('customer.reportsubchannel')
 		}
-		// let columndata = $.extend(true, [], cst.columnrow)
-		// let rowdata = $.extend(true, [], cst.columnrow)
-		// for (var i in cst.row()) {
-		// 	columndata = _.remove(columndata, (d) => { return d.field != cst.row()[i] })
-		// }
-		// for (var i in cst.column()) {
-		// 	rowdata = _.remove(rowdata, (d) => { return d.field != cst.column()[i] })
-		// }
-		// cst.optionRows(rowdata)
-		// cst.optionColumns(columndata)
-	}, 100)
+	}, 300)
+}
+
+cst.breakdownClean = () => {
+	let groups = []
+
+	cst.breakdown().forEach((d) => {
+		let dimension = d
+
+		if (d.indexOf('|') > -1) {
+			dimension = d.split('|')[0]
+		}
+
+		if (groups.indexOf(dimension) == -1) {
+			if (dimension == 'customer.reportsubchannel') {
+				groups = groups.filter((e) => e != 'customer.channelname')
+				groups.push('customer.channelname')
+			}
+
+			groups.push(dimension)
+		}
+	})
+
+	return groups
 }
 
 cst.refresh = () => {
-	let param = {}
-	let groups = ['date.fiscal'].concat(cst.row()
-		.concat(cst.column())
-		.filter((d) => d != 'pnl'))
+	if (cst.breakdown().length == 0) {
+		toolkit.showError('At least one breakdown is required')
+		return
+	}
 
-	param.pls = cst.breakdownvalue()
+	let param = {}
+	let groups = ['date.fiscal'].concat(cst.breakdownClean())
+
+	param.pls = cst.dimensionPNL()
 	param.flag = ''
 	param.groups = groups
 	param.aggr = 'sum'
 	param.filters = rpt.getFilterValue(false, cst.fiscalYear)
+
+	let subchannels = []
+
+	cst.optionDimensionBreakdown()
+		.filter((d) => cst.breakdown().indexOf(d.field) > -1)
+		.filter((d) => d.hasOwnProperty('filter'))
+		.forEach((d) => {
+			subchannels = subchannels.concat(d.filter.Value)
+		})
+
+	if (subchannels.length > 0) {
+		param.filters.push({
+			Field: 'customer.channelname',
+			Op: '$in',
+			Value: subchannels
+		})
+	}
 
 	let fetch = () => {
 		app.ajaxPost(viewModel.appName + "report/getpnldatanew", param, (res) => {
@@ -91,16 +136,21 @@ cst.refresh = () => {
 				return
 			}
 
+			if (rpt.isEmptyData(res)) {
+				cst.contentIsLoading(false)
+				return
+			}
+
 			cst.contentIsLoading(false)
 
 			rpt.plmodels(res.Data.PLModels)
 			cst.data(res.Data.Data)
 
-			let opl1 = _.orderBy(rpt.plmodels(), (d) => d.OrderIndex)
+			let opl1 = _.orderBy(rpt.allowedPL(), (d) => d.OrderIndex)
 			let opl2 = _.map(opl1, (d) => ({ field: d._id, name: d.PLHeader3 }))
-			cst.optionDimensionSelect(opl2)
-			if (cst.breakdownvalue().length == 0) {
-				cst.breakdownvalue(['PL8A', "PL7", "PL74B", "PL74C", "PL94A", "PL44B", "PL44C"])
+			cst.optionDimensionPNL(opl2)
+			if (cst.dimensionPNL().length == 0) {
+				cst.dimensionPNL(['PL8A', "PL7", "PL74B", "PL44B"])
 			}
 
 			cst.build()
@@ -114,24 +164,38 @@ cst.refresh = () => {
 }
 
 cst.build = () => {
-	let keys = cst.breakdownvalue()
+	let breakdown = cst.breakdownClean()
+	console.log('breakdown', breakdown)
+
+	let keys = _.orderBy(cst.dimensionPNL(), (d) => {
+		let plmodel = rpt.allowedPL().find((e) => e._id == d)
+	    return (plmodel != undefined) ? plmodel.OrderIndex : ''
+	}, 'asc')
+
 	let all = []
-	let columns = cst.column().map((d) => toolkit.replace(d, '.', '_'))
-	let rows = cst.row().map((d) => toolkit.replace(d, '.', '_'))
+	let columns = []
+	let rows = []
+
+	if (cst.rowColumn() == 'row') {
+		columns = breakdown.map((d) => toolkit.replace(d, '.', '_'))
+		rows = ['pnl'].map((d) => toolkit.replace(d, '.', '_'))
+	} else {
+		columns = ['pnl'].map((d) => toolkit.replace(d, '.', '_'))
+		rows = breakdown.map((d) => toolkit.replace(d, '.', '_'))
+	}
 
 	// BUILD WELL STRUCTURED DATA
 
 	let allRaw = []
 	cst.data().forEach((d) => {
 		let o = {}
-		let isPnlOnRow = (rows.find((e) => e == 'pnl') != undefined)
 
 		for (let key in d._id) if (d._id.hasOwnProperty(key)) {
 			o[toolkit.replace(key, '_id_', '')] = d._id[key]
 		}
 
 		keys.map((e) => {
-			let pl = rpt.plmodels().find((g) => g._id == e)
+			let pl = rpt.allowedPL().find((g) => g._id == e)
 			let p = toolkit.clone(o)
 			p.pnl = pl.PLHeader3
 			p.value = d[e]
@@ -157,12 +221,101 @@ cst.build = () => {
 			col.rows.push(row)
 		})
 
-		col.rows = _.orderBy(col.rows, (d) => d.value, 'desc')
+		col.rows = _.orderBy(col.rows, (d) => d.value, cst.sortOrder())
 		all.push(col)
 	})
 
-	all = _.orderBy(all, (d) => toolkit.sum(d.rows, (e) => e.value), 'desc')
+	all = _.orderBy(all, (d) => (d.rows.length > 0) ? d.rows[0].value : d, cst.sortOrder())
 
+	// REORDER
+
+	if (breakdown.indexOf('date.month') > -1) {
+		all = _.orderBy(all, (d) => {
+			return parseInt(d.date_month, 10)
+		}, 'asc') // cst.sortOrder())
+
+		all.forEach((d) => {
+			let m = d.date_month - 1 + 3
+			let y = parseInt(cst.fiscalYear().split('-')[0], 0)
+
+			d.date_month = moment(new Date(2015, m, 1)).format("MMMM YYYY")
+		})
+	} else 
+
+	if (breakdown.indexOf('date.quartertxt') > -1) {
+		all = _.orderBy(all, (d) => {
+			return d.date_quartertxt
+		}, 'asc') // cst.sortOrder())
+	}
+
+	// INJECT TOTAL
+	if (cst.putTotalOf() != '') {
+		let group = breakdown.slice(0, breakdown.indexOf(cst.putTotalOf()))
+		let groupOther = breakdown.filter((d) => (group.indexOf(d) == -1) && d != cst.putTotalOf())
+		let allCloned = []
+		let cache = {}
+
+		// console.log("cst.breakdown", breakdown)
+		// console.log("group", group)
+		// console.log("groupOther", groupOther)
+
+		all.forEach((d, i) => {
+			let currentKey = group.map((f) => d[toolkit.replace(f, '.', '_')]).join('_')
+
+			if (!cache.hasOwnProperty(currentKey)) {
+				let currentData = all.filter((f) => {
+					let targetKey = group.map((g) => f[toolkit.replace(g, '.', '_')]).join('_')
+					return (targetKey == currentKey)
+				})
+
+				if (currentData.length > 0) {
+					let sample = currentData[0]
+					let o = {}
+					o[toolkit.replace(cst.putTotalOf(), '.', '_')] = 'Total'
+					o.rows = []
+
+					group.forEach((g) => {
+						o[toolkit.replace(g, '.', '_')] = sample[toolkit.replace(g, '.', '_')]
+					})
+
+					groupOther.forEach((g) => {
+						o[toolkit.replace(g, '.', '_')] = '&nbsp;'
+					})
+
+					sample.rows.forEach((g, b) => {
+						let row = {}
+						row.pnl = g.pnl
+						row.value = toolkit.sum(currentData, (d) => d.rows[b].value)
+						o.rows.push(row)
+					})
+
+					o.rows = _.orderBy(o.rows, (d) => {
+						let pl = rpt.allowedPL().find((g) => g.PLHeader3 == d.pnl)
+						if (pl != undefined) {
+							return pl.OrderIndex
+						}
+
+						return ''
+					}, 'asc')
+
+					allCloned.push(o)
+				}
+
+				console.log('---currentKey', currentKey)
+				console.log('---currentData', currentData)
+
+				cache[currentKey] = true
+			}
+
+			allCloned.push(d)
+		})
+
+		all = allCloned
+	}
+
+	console.log('columns', columns)
+	console.log('plmodels', rpt.allowedPL())
+	console.log('keys', keys)
 	console.log("all", all)
 
 	// PREPARE TEMPLATE
@@ -201,6 +354,10 @@ cst.build = () => {
 		let op1 = _.groupBy(data, (e) => e[groups[0]])
 		let op2 = _.map(op1, (v, k) => toolkit.return({ key: k, val: v }))
 
+		// console.log('columns', columns)
+		// console.log('op1', op1)
+		// console.log('op2', op2)
+
 		let op3 = op2.forEach((g) => {
 			let k = g.key, v = g.val
 			callbackEach(groups, counter, what, k, v)
@@ -218,7 +375,7 @@ cst.build = () => {
 
 	// GENERATE TABLE CONTENT HEADER
 
-	columns.forEach((d) => {
+	// columns.forEach((d) => {
 		groupThenLoop(all, columns, (groups) => {
 			let rowHeader = tableContent.find(`tr[data-key=${groups.length}]`)
 			if (rowHeader.size() == 0) {
@@ -277,6 +434,8 @@ cst.build = () => {
 						.attr('data-key', key)
 				}
 
+				// console.log("-------", rows)
+
 				rows.forEach((e) => {
 					let tdKey = [e, key].join('_')
 					let rowTdHeader = rowTrHeader.find(`td[data-key="${tdKey}"]`)
@@ -304,7 +463,7 @@ cst.build = () => {
 		})
 
 		tableContent.width(totalWidth)
-	})
+	// })
 
 	let tableClear = toolkit.newEl('div')
 		.addClass('clearfix')
@@ -313,181 +472,15 @@ cst.build = () => {
 	container.height(tableContent.height())
 }
 
-cst.getpnl = (datapl) => {
-	datapl = _.filter(datapl,(d) => { 
-		return d.PLHeader1 == d.PLHeader2 && d.PLHeader1 == d.PLHeader3
-	})
-	let data = datapl.map((d) => app.o({ field: d._id, name: d.PLHeader3 }))
-	data = _.sortBy(data, function(item) {
-				return [item.name]
-			})
-	cst.optionDimensionSelect(data)
-	cst.generatedatapl()
-}
-
-cst.generatedatapl = () => {
-	cst.datapnl([])
-	let fielddimension
-	for (var i in cst.breakdownvalue()) {
-		fielddimension = _.find(cst.optionDimensionSelect(), (e) => { return e.field == cst.breakdownvalue()[i] })
-		if (fielddimension != undefined)
-			cst.datapnl.push(fielddimension)
-	}
-	if (cst.datapnl().length == 0)
-		cst.datapnl(cst.optionDimensionSelect())
-
-	let data = _.map(cst.data(),(d) => {
-		let datanew = {}, field, title = "", datapoint
-		$.each( d, function( key, value ) {
-			if (key != "_id") {
-				field = _.find(cst.datapnl(), (e) => { return e.field == key })
-				if (field != undefined) {
-					datanew[key] = value
-					datapoint = _.find(cst.dataPoints(), (e) => { return e.field == key })
-					if (datapoint == undefined)
-						cst.dataPoints.push({ field: key, title: field.name })
-				}
-			}
-		})
-		$.each( d._id, function( key, value ) {
-			title = key.substring(4, key.length);
-			datanew[title] = value
-		})
-
-		return datanew
-	})
-	cst.changecolumnrow(data)
-}
-
-cst.changecolumnrow = (data) => {
-	let row = cst.row().find((e) => e == 'pnl'), newdata = [], fieldchange = {}, datapoint
-	if (row != undefined) {
-		data.forEach((e,a) => {
-			cst.dataPoints().forEach((d) => {
-				fieldchange = {}
-				fieldchange['pnl'] = d.title
-				fieldchange['date_fiscal'] = e['date_fiscal']
-				cst.column().forEach((f, i) => {
-					let field = toolkit.replace(f, '.', '_')
-					fieldchange[e[field]] = e[d.field]
-					datapoint = _.find(cst.dataMeasures(), (g) => { return g.field == e[field] })
-					if (datapoint == undefined)
-						cst.dataMeasures.push({ field: e[field], title: e[field] })
-				})
-				newdata.push(fieldchange)
-			})
-		})
-		let grouppnl = _.groupBy(newdata, (d) => { return d.pnl })
-		newdata = []
-		$.each( grouppnl, function( key, value ) {
-			fieldchange = {}
-			for (var i in value) {
-				$.each( value[i], function( key2, value2 ) {
-					if (key2 != 'pnl' && key2 != 'date_fiscal'){
-						if (fieldchange[key2] == undefined)
-							fieldchange[key2] = value2
-						else
-							fieldchange[key2] += value2
-					}
-				})
-				fieldchange['date_fiscal'] = value[i]['date_fiscal']
-			}
-			fieldchange['pnl'] = key
-			newdata.push(fieldchange)
-		})
-	} else {
-		cst.dataMeasures(cst.dataPoints())
-		newdata = data
-	}
-	console.log(newdata, data)
-	cst.render(newdata)
-}
-
-cst.render = (resdata) => {
-	console.log('data', resdata)
-	let schemaModelFields = {}, schemaCubeDimensions = {}, schemaCubeMeasures = {}, columns = [], rows = [], measures = [], choose = ''
-
-	// let data = _.sortBy(cst.data(), (d) => toolkit.redefine(d[toolkit.replace(cst.column(), '.', '_')], ''))
-	let data = cst.data()
-
-	cst.row().forEach((d, i) => {
-		let row = cst.optionRows().find((e) => e.field == d && e.field != 'pnl')
-		if (row != undefined) {
-			let field = toolkit.replace(row.field, '.', '_')
-			schemaModelFields[field] = { type: 'string', field: field }
-			rows.push({ name: field, expand: (i == 0) })
-		} else {
-			choose = 'row'
-			rows.push({name: 'pnl', expand: true})
-			schemaModelFields['pnl'] = { type: 'string', field: 'pnl' }
-		}
-	})
-
-	cst.column().forEach((d, i) => {
-		let column = cst.optionColumns().find((e) => e.field == d && e.field != 'pnl')
-		if (choose == '') {
-			if (column != undefined) {
-				let field = toolkit.replace(column.field, '.', '_')
-				schemaModelFields[field] = { type: 'string', field: field }
-				columns.push({ name: field, expand: (i == 0) })
-			} else {
-				choose = 'column'
-				columns.push({name: 'pnl', expand: true})
-				schemaModelFields['pnl'] = { type: 'string', field: 'pnl' }
-			}
-		}
-	})
-	console.log(columns)
-
-	cst.dataMeasures().forEach((d) => {
-		let field = toolkit.replace(d.field, '.', '_')
-		schemaModelFields[field] = { type: 'number' }
-		schemaCubeDimensions[field] = { caption: d.title }
-
-		schemaCubeMeasures[d.title] = { field: field, format: '{0:c}', aggregate: 'sum' }
-		measures.push(d.title)
-	})
-
-	// console.log("schemaModelFields ", schemaModelFields)
-	// console.log("schemaCubeDimensions ", schemaCubeDimensions)
-	// console.log("schemaCubeMeasures ", schemaCubeMeasures)
-	// console.log("measures ", measures)
-	// console.log("columns ", columns)
-	// console.log("rows ", rows)
-	let config = {
-	    filterable: false,
-	    reorderable: false,
-	    dataCellTemplate: (d) => `<div class="align-right">${kendo.toString(d.dataItem.value, "n2")}</div>`,
-	    columnWidth: 130,
-	    dataSource: {
-			data: resdata,
-			schema: {
-				model: {
-					fields: schemaModelFields
-				},
-				cube: {
-					dimensions: schemaCubeDimensions,
-					measures: schemaCubeMeasures
-				}
-			},
-			columns: columns,
-			rows: rows,
-			measures: measures
-		}
-	}
-	console.log(ko.toJSON(config))
-	$('.pivot').replaceWith('<div class="pivot ez"></div>')
-	$('.pivot').kendoPivotGrid(config)
-}
-
 vm.currentMenu('Analysis')
 vm.currentTitle('Custom Analysis')
 vm.breadcrumb([
-	{ title: 'Godrej', href: '#' },
+	{ title: 'Godrej', href: viewModel.appName + 'page/landing' },
+	{ title: 'Home', href: viewModel.appName + 'page/landing' },
 	{ title: 'Custom Analysis', href: '#' }
 ])
 
-cst.title('Custom Analysis')
+cst.title('&nbsp;')
 
 
 $(() => {

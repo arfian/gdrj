@@ -23,7 +23,8 @@ var (
 	periodFrom, periodTo int
 	dateFrom, dateTo     time.Time
 	fiscalyear           int
-	tablename            = "salespls"
+	gtablename           = "salespls-2015"
+	stablename           = "salespls-2015"
 )
 var masters = toolkit.M{}
 
@@ -71,7 +72,7 @@ func buildmap(holder interface{},
 	return holder
 }
 
-func prepmastercalc() {
+func prepmaster() {
 
 	toolkit.Println("--> PL MODEL")
 	masters.Set("plmodel", buildmap(map[string]*gdrj.PLModel{},
@@ -84,6 +85,9 @@ func prepmastercalc() {
 			o := obj.(*gdrj.PLModel)
 			h[o.ID] = o
 		}).(map[string]*gdrj.PLModel))
+}
+
+func prepmastercalc() {
 	//HBrandCategory
 	toolkit.Println("--> BRAND Category")
 	tkmbrandcategory := toolkit.M{}
@@ -200,42 +204,44 @@ func prepmastercalc() {
 		case "APROMO":
 			agroup := "promo"
 			if strings.Contains(o.Grouping, "Advertising") {
-				agroup = "adv"
+				continue
+				// agroup = "adv"
 			} else if strings.Contains(o.Grouping, "SPG") {
 				agroup = "spg"
 			}
 
 			key = toolkit.Sprintf("%s_%s", key, agroup)
-			if agroup == "adv" {
-				tadv, exist := promos[key]
-				if !exist {
-					tadv = toolkit.M{}
-				}
-				skey := "PL28I"
-				tstr := strings.TrimSpace(o.AccountDescription)
-				switch tstr {
-				case "ADVERTISEMENT - INTERNET":
-					skey = "PL28A"
-				case "ADVERTISEMENT - PRODN - DESIGN - DVLOPMNT":
-					skey = "PL28B"
-				case "ADVERTISEMENT - TV":
-					skey = "PL28C"
-				case "MARKET RESEARCH":
-					skey = "PL28D"
-				case "FAIRS & EVENTS":
-					skey = "PL28E"
-				case "AGENCY FEES":
-					skey = "PL28F"
-				case "ADVERTISEMENT - POP MATERIALS":
-					skey = "PL28G"
-				case "SPONSORSHIP":
-					skey = "PL28H"
-				}
+			// if agroup == "adv" {
+			// 	tadv, exist := promos[key]
+			// 	if !exist {
+			// 		tadv = toolkit.M{}
+			// 	}
+			// 	skey := "PL28I"
+			// 	tstr := strings.TrimSpace(o.AccountDescription)
+			// 	switch tstr {
+			// 	case "ADVERTISEMENT - INTERNET":
+			// 		skey = "PL28A"
+			// 	case "ADVERTISEMENT - PRODN - DESIGN - DVLOPMNT":
+			// 		skey = "PL28B"
+			// 	case "ADVERTISEMENT - TV":
+			// 		skey = "PL28C"
+			// 	case "MARKET RESEARCH":
+			// 		skey = "PL28D"
+			// 	case "FAIRS & EVENTS":
+			// 		skey = "PL28E"
+			// 	case "AGENCY FEES":
+			// 		skey = "PL28F"
+			// 	case "ADVERTISEMENT - POP MATERIALS":
+			// 		skey = "PL28G"
+			// 	case "SPONSORSHIP":
+			// 		skey = "PL28H"
+			// 	}
 
-				v := tadv.GetFloat64(skey) + o.AmountinIDR
-				tadv.Set(skey, v)
-				promos[key] = tadv
-			} else if agroup == "spg" {
+			// 	v := tadv.GetFloat64(skey) + o.AmountinIDR
+			// 	tadv.Set(skey, v)
+			// 	promos[key] = tadv
+			// } else
+			if agroup == "spg" {
 				tspg, exist := promos[key]
 				if !exist {
 					tspg = toolkit.M{}
@@ -330,6 +336,64 @@ func prepmastercalc() {
 		}
 	}
 
+	toolkit.Println("--> Rev. Advertisement")
+	//maps for key
+	csradv, _ := conn.NewQuery().From("rawdatapl_ads30062016").
+		Where(dbox.Eq("year", fiscalyear-1)).
+		Cursor(nil)
+
+	defer csradv.Close()
+	for {
+		m := toolkit.M{}
+		e := csradv.Fetch(&m, 1, false)
+
+		if e != nil {
+			break
+		}
+		agroup := "adv"
+		// key := toolkit.Sprintf("%d_%d", Date.Year(), Date.Month())
+		key := toolkit.Sprintf("%d_%d_%s", m.GetInt("year"), m.GetInt("period"), "adv")
+		if len(m.GetString("brand")) > 2 {
+			key = toolkit.Sprintf("%d_%d_%s_%s",
+				m.GetInt("year"),
+				m.GetInt("period"),
+				strings.TrimSpace(strings.ToUpper(m.GetString("brand"))),
+				"adv")
+		}
+
+		if agroup == "adv" {
+			tadv, exist := promos[key]
+			if !exist {
+				tadv = toolkit.M{}
+			}
+			skey := "PL28I"
+			tstr := strings.TrimSpace(m.GetString("accountdescription"))
+			switch tstr {
+			case "ADVERTISEMENT - INTERNET":
+				skey = "PL28A"
+			case "ADVERTISEMENT - PRODN - DESIGN - DVLOPMNT":
+				skey = "PL28B"
+			case "ADVERTISEMENT - TV":
+				skey = "PL28C"
+			case "MARKET RESEARCH":
+				skey = "PL28D"
+			case "FAIRS & EVENTS":
+				skey = "PL28E"
+			case "AGENCY FEES":
+				skey = "PL28F"
+			case "ADVERTISEMENT - POP MATERIALS":
+				skey = "PL28G"
+			case "SPONSORSHIP":
+				skey = "PL28H"
+			}
+
+			v := tadv.GetFloat64(skey) + m.GetFloat64("amountinidr")
+			tadv.Set(skey, v)
+			promos[key] = tadv
+		}
+
+	}
+
 	subtot = float64(0)
 	for _, v := range royalties {
 		subtot += v
@@ -376,7 +440,7 @@ func prepmastercalc() {
 	toolkit.Println("--> DISCOUNT ACTIVITY")
 	//discounts_all discounts
 	//can be by brach,brand,channelid,month
-	cda, _ := conn.NewQuery().From("rawdatadiscountactivity_rev").Where(f).Cursor(nil)
+	cda, _ := conn.NewQuery().From("rawdiscountact_29062016").Where(f).Cursor(nil)
 	defer cda.Close()
 	chlist := []string{"I1", "I2", "I3", "I4", "I6", "EXP"}
 	inarrstr := func(arrstr []string, str string) bool {
@@ -489,7 +553,7 @@ func prepmastergrossproc() {
 	globalgross, globalgrossvdist := float64(0), float64(0)
 	grossbybranch, grossbybrand, grossbysku, grossbychannel := toolkit.M{}, toolkit.M{}, toolkit.M{}, toolkit.M{}
 	grossbymonthvdist, grossbymonth, grossbymonthsku := toolkit.M{}, toolkit.M{}, toolkit.M{}
-	grossbymonthchannel, grossbymonthbrandchannel := toolkit.M{}, toolkit.M{}
+	grossbymonthchannel, grossbymonthbrandchannel, grossbymonthbrand := toolkit.M{}, toolkit.M{}, toolkit.M{}
 
 	toolkit.Println("--> Trx Gross Proc")
 	csr01, _ := conn.NewQuery().From("salestrxs-grossproc").
@@ -552,13 +616,18 @@ func prepmastergrossproc() {
 		tempval = grossbymonthbrandchannel.GetFloat64(key) + agross
 		grossbymonthbrandchannel.Set(key, tempval)
 
+		key = toolkit.Sprintf("%d_%d_%s", m.GetInt("year"), m.GetInt("month"), m.GetString("brand"))
+		tempval = grossbymonthbrand.GetFloat64(key) + agross
+		grossbymonthbrand.Set(key, tempval)
+
 	}
 
 	masters.Set("globalgross", globalgross).Set("globalgrossvdist", globalgrossvdist)
 	// tkm
 	masters.Set("grossbybranch", grossbybranch).Set("grossbybrand", grossbybrand).Set("grossbysku", grossbysku).Set("grossbychannel", grossbychannel)
 	masters.Set("grossbymonth", grossbymonth).Set("grossbymonthvdist", grossbymonthvdist).Set("grossbymonthsku", grossbymonthsku).
-		Set("grossbymonthchannel", grossbymonthchannel).Set("grossbymonthbrandchannel", grossbymonthbrandchannel)
+		Set("grossbymonthchannel", grossbymonthchannel).Set("grossbymonthbrandchannel", grossbymonthbrandchannel).
+		Set("grossbymonthbrand", grossbymonthbrand)
 }
 
 var pldatas = map[string]*gdrj.PLDataModel{}
@@ -572,6 +641,8 @@ func main() {
 
 	eperiode := time.Date(fiscalyear, 4, 1, 0, 0, 0, 0, time.UTC)
 	speriode := eperiode.AddDate(-1, 0, 0)
+	speriode = eperiode.AddDate(0, 0, -1)
+	stablename = "salespls-1"
 
 	setinitialconnection()
 	defer gdrj.CloseDb()
@@ -588,147 +659,133 @@ func main() {
 
 	toolkit.Println("Reading Master")
 
-	// prepmaster()
-	prepmastergrossproc()
-	prepmasterclean()
-	prepmastercalc()
-
-	// jobs := make(chan *gdrj.SalesPL)
-	// result := make(chan string)
-
-	// chdates := make(chan time.Time, len(seeds))
-
-	// for wi := 0; wi < 10; wi++ {
-	// 	go workergetproc(wi, chdates, jobs, getresult)
-	// }
-
-	// for wi := 0; wi < 10; wi++ {
-	// 	go workersaveproc(wi, jobs, result)
-	// }
+	prepmaster()
+	// prepmastergrossproc()
+	// prepmasterclean()
+	// prepmastercalc()
 
 	getresult := make(chan int, len(seeds))
 	toolkit.Println("Starting worker query...")
-	for i, v := range seeds {
+	ix := 0
+	for _, v := range seeds {
+		ix++
 		filter := dbox.Eq("date.date", v)
-		go workerproc(i, filter, getresult)
+		go workerproc(ix, filter, getresult)
 	}
 
-	toolkit.Println("Waiting result query...")
-	for i := 1; i <= len(seeds); i++ {
-		<-getresult
-		toolkit.Printfn("Saving %d of %d (%d pct) in %s",
-			i, len(seeds), i/len(seeds), time.Since(t0).String())
+	toolkit.Println("Waiting result query... : ", ix)
+	for i := 1; i <= ix; i++ {
+		n := <-getresult
+		toolkit.Printfn("Saving %d of %d (%d pct) in %s : %d",
+			i, ix, i*100/ix, time.Since(t0).String(), n)
 	}
 
-	// rows := 0
-	// for i := 0; i < len(chdates); i++ {
-	// 	rows += <-getresult
-	// }
-	// close(jobs)
-
-	// step := rows / 100
-	// if step == 0 {
-	// 	step = 1
-	// }
-
-	// for ri := 0; ri < rows; ri++ {
-	// 	<-result
-
-	// 	if ri%step == 0 {
-	// 		toolkit.Printfn("Saving %d of %d (%d pct) in %s",
-	// 			ri, rows, ri/step, time.Since(t0).String())
-	// 	}
-	// }
+	toolkit.Printfn("All done in %s", time.Since(t0).String())
 }
-
-// func workersaveproc(wi int, jobs <-chan *gdrj.SalesPL, result chan<- string) {
-// 	workerconn, _ := modules.GetDboxIConnection("db_godrej")
-// 	defer workerconn.Close()
-
-// 	var spl *gdrj.SalesPL
-// 	for spl = range jobs {
-
-// 		spl.CleanAndClasify(masters)
-
-// 		// === For ratio update and calc
-// 		spl.RatioCalc(masters)
-
-// 		//calculate process -- better not re-run
-// 		// spl.CalcCOGSRev(masters)
-
-// 		//calculate process
-// 		// spl.CalcFreight(masters)
-// 		// spl.CalcDepre(masters)
-// 		// spl.CalcDamage(masters)
-// 		// spl.CalcDepre(masters)
-// 		// spl.CalcRoyalties(masters)
-// 		// spl.CalcDiscountActivity(masters)
-// 		// spl.CalcPromo(masters)
-// 		// spl.CalcSum(masters)
-
-// 		// tablename := toolkit.Sprintf("%v-1", spl.TableName())
-// 		workerconn.NewQuery().From(toolkit.Sprintf("%v-2", tablename)).
-// 			Save().Exec(toolkit.M{}.Set("data", spl))
-
-// 		result <- spl.ID
-// 	}
-// }
 
 func workerproc(wi int, filter *dbox.Filter, getresult chan<- int) {
 	workerconn, _ := modules.GetDboxIConnection("db_godrej")
 	defer workerconn.Close()
 
-	// t01 := time.Now()
 	csr, _ := workerconn.NewQuery().Select().
-		From(tablename).
+		From(gtablename).
 		Where(filter).
 		Cursor(nil)
 
-	// countall := csr.Count()
 	i := 0
+	qSave := workerconn.NewQuery().
+		From(stablename).
+		SetConfig("multiexec", true).
+		Save()
+
 	for {
 		i++
 		spl := new(gdrj.SalesPL)
 		e := csr.Fetch(spl, 1, false)
 		if e != nil {
+			// toolkit.Println("FETCH : ", e)
 			break
 		}
 
-		spl.CleanAndClasify(masters)
+		// 		spl.CleanAndClasify(masters)
 		spl.CalcSales(masters)
-		// 		// === For ratio update and calc
-		spl.RatioCalc(masters)
+		// 		// 		// === For ratio update and calc
+		// spl.RatioCalc(masters)
 
-		// 		//calculate process -- better not re-run
-		// 		// spl.CalcCOGSRev(masters)
+		// 		// 		//calculate process -- better not re-run
+		// 		// 		// spl.CalcCOGSRev(masters)
 
-		// 		//calculate process
-		// 		// spl.CalcFreight(masters)
+		// 		// 		//calculate process
+		// 		// 		// spl.CalcFreight(masters)
+		// 		// 		// spl.CalcDepre(masters)
+		// 		spl.CalcDamage(masters)
 		// 		// spl.CalcDepre(masters)
-		spl.CalcDamage(masters)
-		// spl.CalcDepre(masters)
-		// 		// spl.CalcRoyalties(masters)
-		// 		// spl.CalcDiscountActivity(masters)
-		// 		// spl.CalcPromo(masters)
+		// 		spl.CalcDiscountActivity(masters)
+		spl.CalcRoyalties2015(masters)
+		// spl.CalcPromo(masters)
 		spl.CalcSum(masters)
 
-		tablename := toolkit.Sprintf("%v-2", spl.TableName())
-
-		workerconn.NewQuery().From(tablename).
-			Save().Exec(toolkit.M{}.Set("data", spl))
-
-		if i == 5 {
-			break
+		err := qSave.Exec(toolkit.M{}.Set("data", spl))
+		if err != nil {
+			toolkit.Printfn("Save data : %v", err)
 		}
+		// workerconn.NewQuery().From(tablename).
+		// 	Save().Exec(toolkit.M{}.Set("data", spl))
 	}
 
 	getresult <- csr.Count()
 
-	// toolkit.Printfn("Process data %v done in %s with %d row",
-	// 	chdate, time.Since(t01).String(), csr.Count())
-	// csr.Close()
-
-	// toolkit.Printfn("Go %d. Processing done in %s",
-	// 	wi,
-	// 	time.Since(t0).String())
 }
+
+// func workerproc(wi int, filter *dbox.Filter, getresult chan<- int) {
+// 	workerconn, _ := modules.GetDboxIConnection("db_godrej")
+// 	defer workerconn.Close()
+
+// 	csr, _ := workerconn.NewQuery().Select().
+// 		From(tablename).
+// 		Where(filter).
+// 		Cursor(nil)
+
+// 	qSave := workerconn.NewQuery().
+// 		From(tablename).
+// 		SetConfig("multiexec", true).
+// 		Save()
+
+// 	i := 0
+// 	for {
+// 		i++
+// 		spl := new(gdrj.SalesPL)
+// 		e := csr.Fetch(spl, 1, false)
+// 		if e != nil {
+// 			break
+// 		}
+
+// 		spl.CleanAndClasify(masters)
+// 		spl.CalcSales(masters)
+// 		// 		// === For ratio update and calc
+// 		spl.RatioCalc(masters)
+
+// 		// 		//calculate process -- better not re-run
+// 		// 		// spl.CalcCOGSRev(masters)
+
+// 		// 		//calculate process
+// 		// 		// spl.CalcFreight(masters)
+// 		// 		// spl.CalcDepre(masters)
+// 		spl.CalcDamage(masters)
+// 		// spl.CalcDepre(masters)
+// 		spl.CalcDiscountActivity(masters)
+// 		spl.CalcRoyalties2015(masters)
+// 		// 		// spl.CalcPromo(masters)
+// 		spl.CalcSum(masters)
+
+// 		// tablename := toolkit.Sprintf("%v-2015", spl.TableName())
+
+// 		err := qSave.Exec(toolkit.M{}.Set("data", spl))
+// 		if err != nil {
+// 			toolkit.Printfn("Save data : %v", err)
+// 		}
+// 	}
+
+// 	getresult <- csr.Count()
+
+// }

@@ -201,6 +201,42 @@ func (w *PageController) GrowthAnalysis(r *knot.WebContext) interface{} {
 	return w.Params
 }
 
+func (w *PageController) RDvsBranchAnalysis(r *knot.WebContext) interface{} {
+	gocore.WriteLog(r.Session("sessionid", ""), "access", r.Request.URL.String())
+	r.Config.OutputType = knot.OutputTemplate
+	r.Config.LayoutTemplate = LayoutFile
+	r.Config.ViewName = "page-report-rd-vs-branch-analysis.html"
+
+	return w.Params
+}
+
+func (w *PageController) ContributionAnalysis(r *knot.WebContext) interface{} {
+	gocore.WriteLog(r.Session("sessionid", ""), "access", r.Request.URL.String())
+	r.Config.OutputType = knot.OutputTemplate
+	r.Config.LayoutTemplate = LayoutFile
+	r.Config.ViewName = "page-report-contribution.html"
+
+	return w.Params
+}
+
+func (w *PageController) DistributionAnalysis(r *knot.WebContext) interface{} {
+	gocore.WriteLog(r.Session("sessionid", ""), "access", r.Request.URL.String())
+	r.Config.OutputType = knot.OutputTemplate
+	r.Config.LayoutTemplate = LayoutFile
+	r.Config.ViewName = "page-report-distribution.html"
+
+	return w.Params
+}
+
+func (w *PageController) SalesReturnAnalysis(r *knot.WebContext) interface{} {
+	gocore.WriteLog(r.Session("sessionid", ""), "access", r.Request.URL.String())
+	r.Config.OutputType = knot.OutputTemplate
+	r.Config.LayoutTemplate = LayoutFile
+	r.Config.ViewName = "page-report-sales-return.html"
+
+	return w.Params
+}
+
 // func (w *PageController) PageReport(r *knot.WebContext, args []string) interface{} {
 // 	gocore.WriteLog(r.Session("sessionid", ""), "access", r.Request.URL.String())
 // 	r.Config.OutputType = knot.OutputTemplate

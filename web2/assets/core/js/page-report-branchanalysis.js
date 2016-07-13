@@ -1,7 +1,5 @@
 'use strict';
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
 viewModel.breakdown = new Object();
 var ba = viewModel.breakdown;
 
@@ -25,7 +23,7 @@ ba.zeroValue = ko.observable(false);
 ba.fiscalYear = ko.observable(rpt.value.FiscalYear());
 ba.breakdownValue = ko.observableArray([]);
 ba.breakdownRD = ko.observable("All");
-ba.optionBreakdownRD = ko.observableArray([{ id: "All", title: "RD & Non RD" }, { id: "NonRD", title: "Non RD Sales" }, { id: "OnlyRD", title: "Only RD Sales", label: "RD", channelid: "I1" }]);
+ba.optionBreakdownRD = ko.observableArray([{ id: "All", title: "RD & Non RD" }, { id: "OnlyRD", title: "Only RD Sales", label: "RD", channelid: "I1" }, { id: "NonRD", title: "Non RD Sales" }]);
 
 ba.expand = ko.observable(false);
 ba.enableExpand = ko.observable(true);
@@ -44,7 +42,7 @@ ba.changeBreakdownRD = function () {
 ba.level = ko.observable(2);
 
 ba.buildStructure = function (breakdownRD, expand, data) {
-	var rdCategories = ["RD", "Non RD"];
+	var rdCategories = ["Regional Distributor", "Non RD"];
 	var keys = ["_id_customer_branchname", "_id_customer_channelid", "_id_customer_channelname"];
 
 	var fixEmptySubs = function fixEmptySubs(d) {
@@ -186,8 +184,88 @@ ba.buildStructure = function (breakdownRD, expand, data) {
 		return op2;
 	};
 
-	if (expand && breakdownRD == 'NonRD') {
+	if (expand && ba.subBreakdownValue().length > 0) {
 		var _parsed = groupThenMap(data, function (d) {
+			return d._id._id_customer_branchname;
+		}).map(function (d) {
+			var subs = groupThenMap(d.subs, function (e) {
+				return e._id._id_customer_channelname;
+			}).map(function (e) {
+				var subs = groupThenMap(e.subs, function (f) {
+					return f._id._id_customer_reportsubchannel;
+				}).map(function (f) {
+					f.count = 1;
+					return f;
+				});
+
+				e.subs = _.orderBy(subs, function (f) {
+					return f.PL8A;
+				}, 'desc');
+				e.count = e.subs.length;
+				return e;
+			});
+
+			d.subs = _.orderBy(subs, function (e) {
+				return e.PL8A;
+			}, 'desc');
+			d.count = toolkit.sum(d.subs, function (e) {
+				return e.count;
+			});
+			return d;
+		});
+
+		ba.level(3);
+		showAsBreakdown(_parsed);
+		_parsed = _.orderBy(_parsed, function (d) {
+			return d.total;
+		}, 'desc');
+
+		_parsed.forEach(function (g) {
+			g.subs.forEach(function (d, i) {
+				if (i == 0) {
+					return;
+				}
+
+				var sample = d.subs[0];
+				var percentage = {};
+				percentage._id = '% of Net Sales';
+				percentage.count = 1;
+				percentage.excludeFromTotal = true;
+				// percentage.key = [d.key.split('_')[0], 'percentage'].join('_')
+
+				var total = {};
+				total._id = 'Total&nbsp;';
+				total.count = 1;
+				total.excludeFromTotal = true;
+
+				var _loop3 = function _loop3(p) {
+					if (sample.hasOwnProperty(p) && p.indexOf('PL') > -1) {
+						var vTarget = toolkit.sum(d.subs, function (h) {
+							return h[p];
+						});
+						var vNetSales = toolkit.sum(d.subs, function (h) {
+							return h.PL8A;
+						});
+						var value = toolkit.number(vTarget / vNetSales) * 100;
+						percentage[p] = kendo.toString(value, 'n2') + ' %';
+						total[p] = vTarget;
+					}
+				};
+
+				for (var p in sample) {
+					_loop3(p);
+				}d.subs = [percentage].concat(d.subs);
+				d.count++;
+				g.count++;
+				d.subs = [total].concat(d.subs);
+				d.count++;
+				g.count++;
+			});
+		});
+
+		return _parsed;
+	} else if (expand && ba.subBreakdownValue().length == 0) {
+		var _parsed2 = groupThenMap(data, function (d) {
 			return d._id._id_customer_branchname;
 		}).map(function (d) {
 			var subs = groupThenMap(d.subs, function (e) {
@@ -218,96 +296,76 @@ ba.buildStructure = function (breakdownRD, expand, data) {
 		});
 
 		ba.level(3);
-		showAsBreakdown(_parsed);
-		_parsed = _.orderBy(_parsed, function (d) {
-			return d.total;
-		}, 'desc');
-		return _parsed;
-	} else if (expand && breakdownRD.search('Only') > -1) {
-		var _parsed2 = groupThenMap(data, function (d) {
-			return d._id._id_customer_branchname;
-		}).map(function (d) {
-			var subs = groupThenMap(d.subs, function (e) {
-				return e._id._id_customer_channelname;
-			}).map(function (e) {
-				var subs = groupThenMap(d.subs, function (f) {
-					return f._id._id_customer_reportsubchannel;
-				}).map(function (f) {
-					f.subs = [];
-					f.count = 1;
-					return f;
-				});
-
-				e.subs = _.orderBy(subs, function (f) {
-					return f.PL8A;
-				}, 'desc');
-				e.count = e.subs.length;
-				return e;
-			});
-
-			d.subs = _.orderBy(subs, function (e) {
-				return e.PL8A;
-			}, 'desc');
-			d.count = toolkit.sum(d.subs, function (e) {
-				return e.count;
-			});
-			return d;
-		});
-
-		ba.level(3);
 		showAsBreakdown(_parsed2);
 		_parsed2 = _.orderBy(_parsed2, function (d) {
 			return d.total;
 		}, 'desc');
-		return _parsed2;
-	} else if (expand && breakdownRD.search('ByLocation') > -1) {
-		var _ret3 = function () {
-			var opt = ba.optionBreakdownRD().find(function (d) {
-				return d.id == ba.breakdownRD();
-			});
 
-			var parsed = groupThenMap(data, function (d) {
-				return d._id._id_customer_branchname;
-			}).map(function (d) {
-				var subs = groupThenMap(d.subs, function (e) {
-					return e._id._id_customer_channelname;
-				}).map(function (e) {
-					var subs = groupThenMap(d.subs, function (f) {
-						return f._id['_id_customer_' + opt.field];
-					}).map(function (f) {
-						f.subs = [];
-						f.count = 1;
-						return f;
+		_parsed2.forEach(function (g) {
+			g.subs.forEach(function (d, i) {
+				if (i == 0) {
+					return;
+				}
+
+				var sample = d.subs[0];
+				var percentage = {};
+				percentage._id = '% of Net Sales';
+				percentage.count = 1;
+				percentage.excludeFromTotal = true;
+				// percentage.key = [d.key.split('_')[0], 'percentage'].join('_')
+
+				var total = {};
+				total._id = 'Total&nbsp;';
+				total.count = 1;
+				total.excludeFromTotal = true;
+
+				var _loop4 = function _loop4(p) {
+					if (sample.hasOwnProperty(p) && p.indexOf('PL') > -1) {
+						var vTarget = toolkit.sum(d.subs, function (h) {
+							return h[p];
+						});
+						var vNetSales = toolkit.sum(d.subs, function (h) {
+							return h.PL8A;
+						});
+						var value = toolkit.number(vTarget / vNetSales) * 100;
+						percentage[p] = kendo.toString(value, 'n2') + ' %';
+						total[p] = vTarget;
+					}
+				};
+
+				for (var p in sample) {
+					_loop4(p);
+				}if (d._id == 'Regional Distributor') {
+					toolkit.try(function () {
+						d.subs[0]._id = 'Total&nbsp;';
 					});
-
-					e.subs = _.orderBy(subs, function (f) {
-						return f.PL8A;
-					}, 'desc');
-					e.count = e.subs.length;
-					return e;
-				});
-
-				d.subs = _.orderBy(subs, function (e) {
-					return e.PL8A;
-				}, 'desc');
-				d.count = toolkit.sum(d.subs, function (e) {
-					return e.count;
-				});
-				return d;
+					d.subs.push(percentage);
+					d.count++;
+					g.count++;
+				} else {
+					if (d.subs.length > 0) {
+						if (d.subs[0]._id == 'Non RD') {
+							toolkit.try(function () {
+								d.subs[0]._id = 'Total&nbsp;';
+							});
+							d.subs.push(percentage);
+							d.count++;
+							g.count++;
+						} else {
+							d.subs = [percentage].concat(d.subs);
+							d.count++;
+							g.count++;
+							d.subs = [total].concat(d.subs);
+							d.count++;
+							g.count++;
+						}
+					}
+				}
 			});
+		});
 
-			ba.level(3);
-			showAsBreakdown(parsed);
-			parsed = _.orderBy(parsed, function (d) {
-				return d.total;
-			}, 'desc');
-			return {
-				v: parsed
-			};
-		}();
-
-		if ((typeof _ret3 === 'undefined' ? 'undefined' : _typeof(_ret3)) === "object") return _ret3.v;
-	} else if (breakdownRD == "All") {
+		return _parsed2;
+	} else if (!expand && ba.breakdownRD() == 'All') {
 		var _parsed3 = groupThenMap(data, function (d) {
 			return d._id._id_customer_branchname;
 		}).map(function (d) {
@@ -334,6 +392,24 @@ ba.buildStructure = function (breakdownRD, expand, data) {
 		_parsed3 = _.orderBy(_parsed3, function (d) {
 			return d.total;
 		}, 'desc');
+
+		_parsed3.forEach(function (d) {
+			var total = d.subs[0];
+			var percentage = {};
+			percentage._id = '% of Net Sales';
+			percentage.count = 1;
+			percentage.excludeFromTotal = true;
+			// percentage.key = [d.key.split('_')[0], 'percentage'].join('_')
+
+			for (var p in total) {
+				if (total.hasOwnProperty(p) && p.indexOf('PL') > -1) {
+					var value = toolkit.number(total[p] / total.PL8A) * 100;
+					percentage[p] = kendo.toString(value, 'n2') + ' %';
+				}
+			}d.count++;
+			d.subs.splice(1, 0, percentage);
+		});
+
 		return _parsed3;
 	}
 
@@ -368,241 +444,75 @@ ba.buildStructure = function (breakdownRD, expand, data) {
 ba.refresh = function () {
 	var useCache = arguments.length <= 0 || arguments[0] === undefined ? false : arguments[0];
 
-	// if (ba.breakdownRD() == "All") {
-	// 	ba.expand(false)
-	// }
+	var param = {};
+	param.pls = [];
+	param.groups = [ba.breakdownByChannel(), ba.breakdownBy()];
+	param.aggr = 'sum';
+	param.filters = rpt.getFilterValue(false, ba.fiscalYear);
 
-	var request = function request(breakdownRD, expand, callback) {
-		var param = {};
-		param.pls = [];
-		param.groups = [ba.breakdownByChannel(), ba.breakdownBy()];
-		param.aggr = 'sum';
-		param.filters = rpt.getFilterValue(false, ba.fiscalYear);
-
-		var breakdownValue = ba.breakdownValue().filter(function (d) {
-			return d != 'All';
+	var breakdownValue = ba.breakdownValue().filter(function (d) {
+		return d != 'All';
+	});
+	if (breakdownValue.length > 0) {
+		param.filters.push({
+			Field: ba.breakdownBy(),
+			Op: '$in',
+			Value: ba.breakdownValue()
 		});
-		if (breakdownValue.length > 0) {
-			param.filters.push({
-				Field: ba.breakdownBy(),
-				Op: '$in',
-				Value: ba.breakdownValue()
-			});
-		}
-
-		var opt = ba.optionBreakdownRD().find(function (d) {
-			return d.id == breakdownRD;
-		});
-
-		if (breakdownRD == 'NonRD') {
-			param.filters.push({
-				Field: 'customer.channelname',
-				Op: '$in',
-				Value: rpt.masterData.Channel().map(function (d) {
-					return d._id;
-				}).filter(function (d) {
-					return d != 'I1';
-				})
-			});
-		} else if (breakdownRD.search('Only') > -1) {
-			if (expand) {
-				param.groups.push('customer.reportsubchannel');
-			}
-
-			param.filters.push({
-				Field: 'customer.channelname',
-				Op: '$in',
-				Value: [opt.channelid]
-			});
-		} else if (breakdownRD.search('ByLocation') > -1) {
-			param.groups.push('customer.' + opt.field);
-		}
-
-		var fetch = function fetch() {
-			toolkit.ajaxPost(viewModel.appName + "report/getpnldatanew", param, function (res) {
-				if (res.Status == "NOK") {
-					setTimeout(function () {
-						fetch();
-					}, 1000 * 5);
-					return;
-				}
-
-				callback(res);
-			}, function () {
-				ba.emptyGrid();
-				ba.contentIsLoading(false);
-			}, {
-				cache: useCache == true ? 'breakdown chart' : false
-			});
-		};
-
-		ba.oldBreakdownBy(ba.breakdownBy());
-		ba.contentIsLoading(true);
-		fetch();
-	};
-
-	if (ba.breakdownRD() == "All" && ba.expand()) {
-		var _ret4 = function () {
-			var mergeData = function mergeData(dataNonRD, dataRD) {
-				var data = [];
-				var ids = _.uniq(dataNonRD.map(function (d) {
-					return d._id;
-				}).concat(dataRD.map(function (d) {
-					return d._id;
-				})));
-
-				ids.forEach(function (id) {
-					var nonrd = dataNonRD.find(function (d) {
-						return d._id == id;
-					});
-					var rd = dataRD.find(function (d) {
-						return d._id == id;
-					});
-					var sampleData = nonrd == undefined ? rd : nonrd;
-					var mergedData = {};
-					mergedData._id = id;
-					mergedData.count = 0;
-					mergedData.subs = [];
-
-					if (nonrd != undefined) {
-						var nonrdSub = nonrd.subs.find(function (d) {
-							return d._id == 'Non RD';
-						});
-
-						mergedData.count += nonrdSub.subs.length;
-						mergedData.subs.push(nonrdSub);
-					} else {
-						var fake = {};
-						fake._id = 'Non RD';
-						fake.count = 0;
-						fake.subs = [];
-
-						for (var prop in sampleData) {
-							if (sampleData.hasOwnProperty(prop) && prop.search("PL") > -1) {
-								fake[prop] = 0;
-							}
-						}
-
-						var fakseSub = toolkit.clone(fake);
-						fakseSub._id = 'Total';
-
-						fake.subs = [fakseSub];
-						fake.count++;
-
-						mergedData.count++;
-						mergedData.subs.push(fake);
-					}
-
-					if (rd != undefined) {
-						var rdSub = rd.subs.find(function (d) {
-							return ['regional distributor', 'rd'].indexOf(d._id.toLowerCase()) > -1;
-						});
-
-						mergedData.count += rdSub.subs.length;
-						mergedData.subs.push(rdSub);
-					} else {
-						var _fake = {};
-						_fake._id = 'RD';
-						_fake.count = 0;
-						_fake.subs = [];
-
-						for (var _prop in sampleData) {
-							if (sampleData.hasOwnProperty(_prop) && _prop.search("PL") > -1) {
-								_fake[_prop] = 0;
-							}
-						}
-
-						var _fakseSub = toolkit.clone(_fake);
-						_fakseSub._id = 'Total';
-
-						_fake.subs = [_fakseSub];
-						_fake.count++;
-
-						mergedData.count++;
-						mergedData.subs.push(_fake);
-					}
-
-					// Inject and recalculate TOTAL
-
-					var totalAll = {};
-					totalAll._id = 'Total';
-					totalAll.count = 0;
-					totalAll.excludeFromTotal = true;
-					totalAll.subs = [];
-
-					var _loop3 = function _loop3(_prop2) {
-						if (sampleData.hasOwnProperty(_prop2) && _prop2.search("PL") > -1) {
-							totalAll[_prop2] = toolkit.sum(mergedData.subs, function (e) {
-								return e[_prop2];
-							});
-						}
-					};
-
-					for (var _prop2 in sampleData) {
-						_loop3(_prop2);
-					}
-
-					var totalAllSub = toolkit.clone(totalAll);
-					totalAllSub.subs = [];
-
-					totalAll.count++;
-					totalAll.subs.push(totalAllSub);
-
-					mergedData.subs = [totalAll].concat(mergedData.subs);
-					mergedData.count++;
-
-					data.push(mergedData);
-				});
-
-				data = _.orderBy(data, function (d) {
-					return d.total;
-				}, 'desc');
-				return data;
-			};
-
-			console.log("fetching non rd");
-			request("NonRD", ba.expand(), function (res1) {
-				var dataNonRD = ba.buildStructure("NonRD", ba.expand(), res1.Data.Data);
-
-				console.log("fetching rd");
-				request("OnlyRD", ba.expand(), function (res2) {
-					var dataRD = ba.buildStructure("OnlyRD", ba.expand(), res2.Data.Data);
-
-					console.log("non rd", dataNonRD.slice(0));
-					console.log("rd", dataRD.slice(0));
-					console.log("merging data");
-					var data = mergeData(dataNonRD, dataRD);
-					ba.data(data);
-					var date = moment(res2.time).format("dddd, DD MMMM YYYY HH:mm:ss");
-					ba.breakdownNote('Last refreshed on: ' + date);
-
-					rpt.plmodels(res2.Data.PLModels);
-					ba.emptyGrid();
-					ba.contentIsLoading(false);
-					ba.render();
-				});
-			});
-
-			return {
-				v: void 0
-			};
-		}();
-
-		if ((typeof _ret4 === 'undefined' ? 'undefined' : _typeof(_ret4)) === "object") return _ret4.v;
 	}
 
-	request(ba.breakdownRD(), ba.expand(), function (res) {
-		var data = ba.buildStructure(ba.breakdownRD(), ba.expand(), res.Data.Data);
+	if (ba.subBreakdownValue().length > 0) {
+		param.groups.push('customer.reportsubchannel');
 
-		ba.data(data);
-		var date = moment(res.time).format("dddd, DD MMMM YYYY HH:mm:ss");
-		ba.breakdownNote('Last refreshed on: ' + date);
+		param.filters.push({
+			Field: 'customer.channelname',
+			Op: '$in',
+			Value: ba.subBreakdownValue()
+		});
+	} else {
+		param.filters.push({
+			Field: 'customer.channelname',
+			Op: '$in',
+			Value: ba.optionSubBreakdown().map(function (d) {
+				return d._id;
+			})
+		});
+	}
 
-		rpt.plmodels(res.Data.PLModels);
-		ba.emptyGrid();
-		ba.contentIsLoading(false);
-		ba.render();
-	});
+	var fetch = function fetch() {
+		toolkit.ajaxPost(viewModel.appName + "report/getpnldatanew", param, function (res) {
+			if (res.Status == "NOK") {
+				setTimeout(function () {
+					fetch();
+				}, 1000 * 5);
+				return;
+			}
+
+			if (rpt.isEmptyData(res)) {
+				ba.contentIsLoading(false);
+				return;
+			}
+
+			var data = ba.buildStructure(ba.breakdownRD(), ba.expand(), res.Data.Data);
+			ba.data(data);
+			var date = moment(res.time).format("dddd, DD MMMM YYYY HH:mm:ss");
+			ba.breakdownNote('Last refreshed on: ' + date);
+
+			rpt.plmodels(res.Data.PLModels);
+			ba.emptyGrid();
+			ba.contentIsLoading(false);
+			ba.render();
+		}, function () {
+			ba.emptyGrid();
+			ba.contentIsLoading(false);
+		}, {
+			cache: useCache == true ? 'breakdown chart' : false
+		});
+	};
+
+	ba.oldBreakdownBy(ba.breakdownBy());
+	ba.contentIsLoading(true);
+	fetch();
 };
 
 ba.clickExpand = function (e) {
@@ -638,7 +548,6 @@ ba.emptyGrid = function () {
 	$('.breakdown-view').replaceWith('<div class="breakdown-view ez"  id="branch-analysis"></div>');
 };
 
-ba.idarrayhide = ko.observableArray(['PL44A']);
 ba.render = function () {
 	if (ba.data().length == 0) {
 		$('.breakdown-view').html('No data found.');
@@ -647,6 +556,7 @@ ba.render = function () {
 
 	// ========================= TABLE STRUCTURE
 
+	var percentageWidth = 110;
 	var data = _.orderBy(ba.data(), function (d) {
 		return d.PL8A;
 	}, 'desc');
@@ -667,7 +577,7 @@ ba.render = function () {
 
 	toolkit.newEl('th').html('Total').css('height', 34 * ba.level() + 'px').attr('data-rowspan', ba.level()).css('vertical-align', 'middle').addClass('cell-percentage-header align-right').appendTo(trHeader);
 
-	toolkit.newEl('th').html('%').css('height', 34 * ba.level() + 'px').attr('data-rowspan', ba.level()).css('vertical-align', 'middle').addClass('cell-percentage-header align-right').appendTo(trHeader);
+	toolkit.newEl('th').html('% of Net Sales').css('height', 34 * ba.level() + 'px').css('vertical-align', 'middle').css('font-weight', 'normal').css('font-style', 'italic').width(percentageWidth - 20).attr('data-rowspan', ba.level()).css('vertical-align', 'middle').addClass('cell-percentage-header align-right').appendTo(trHeader);
 
 	var trContents = [];
 	for (var i = 0; i < ba.level(); i++) {
@@ -685,6 +595,19 @@ ba.render = function () {
 		var currentColumnWidth = each._id.length * 10;
 		if (currentColumnWidth < columnWidth) {
 			currentColumnWidth = columnWidth;
+		}
+
+		if (ba.expand() && ba.subBreakdownValue().length > 0) {
+			if (ba.subBreakdownValue().indexOf('I1') > -1) {
+				if (each._id == 'Other') {
+					currentColumnWidth = 180;
+				}
+			}
+		}
+
+		if (each._id == '% of Net Sales') {
+			currentColumnWidth -= 20;
+			thheader.css('font-weight', 'normal').css('font-style', 'italic');
 		}
 
 		each.key = key.join('_');
@@ -738,7 +661,7 @@ ba.render = function () {
 	var plmodels = _.sortBy(rpt.plmodels(), function (d) {
 		return parseInt(d.OrderIndex.replace(/PL/g, ''));
 	});
-	var exceptions = ["PL94C" /* "Operating Income" */, "PL39B" /* "Earning Before Tax" */, "PL41C" /* "Earning After Tax" */];
+	var exceptions = ["PL94C" /* "Operating Income" */, "PL39B" /* "Earning Before Tax" */, "PL41C" /* "Earning After Tax" */, "PL6A" /* "Discount" */];
 	var netSalesPLCode = 'PL8A';
 	var netSalesPlModel = rpt.plmodels().find(function (d) {
 		return d._id == netSalesPLCode;
@@ -756,7 +679,6 @@ ba.render = function () {
 		dataFlat.forEach(function (e) {
 			var breakdown = e.key;
 			var value = e['' + d._id];
-			value = toolkit.number(value);
 			row[breakdown] = value;
 
 			if (toolkit.isDefined(e.excludeFromTotal)) {
@@ -765,19 +687,20 @@ ba.render = function () {
 
 			row.PNLTotal += value;
 		});
-		dataFlat.forEach(function (e) {
-			var breakdown = e.key;
-			var percentage = toolkit.number(e['' + d._id] / row.PNLTotal) * 100;
-			percentage = toolkit.number(percentage);
+		// dataFlat.forEach((e) => {
+		// 	let breakdown = e.key
+		// 	let percentage = toolkit.number(e[`${d._id}`] / row.PNLTotal) * 100;
+		// 	percentage = toolkit.number(percentage)
 
-			if (d._id != netSalesPLCode) {
-				percentage = toolkit.number(row[breakdown] / netSalesRow[breakdown]) * 100;
-			}
+		// 	if (d._id != netSalesPLCode) {
+		// 		percentage = toolkit.number(row[breakdown] / netSalesRow[breakdown]) * 100
+		// 	}
 
-			if (percentage < 0) percentage = percentage * -1;
+		// 	if (percentage < 0)
+		// 		percentage = percentage * -1
 
-			row[breakdown + ' %'] = percentage;
-		});
+		// 	row[`${breakdown} %`] = percentage
+		// })
 
 		if (exceptions.indexOf(row.PLCode) > -1) {
 			return;
@@ -792,7 +715,7 @@ ba.render = function () {
 	rows.forEach(function (d, e) {
 		var TotalPercentage = d.PNLTotal / TotalNetSales * 100;
 		if (TotalPercentage < 0) TotalPercentage = TotalPercentage * -1;
-		rows[e].Percentage = TotalPercentage;
+		rows[e].Percentage = toolkit.number(TotalPercentage);
 	});
 
 	// ========================= PLOT DATA
@@ -827,6 +750,10 @@ ba.render = function () {
 				value = 0;
 			}
 
+			if (e._id == "% of Net Sales") {
+				value = d[key];
+			}
+
 			var cell = toolkit.newEl('td').html(value).addClass('align-right').appendTo(trContent);
 		});
 
@@ -850,59 +777,6 @@ ba.render = function () {
 	rpt.buildGridLevels(rows);
 };
 
-ba.prepareEvents = function () {
-	$('.breakdown-view').parent().on('mouseover', 'tr', function () {
-		var rowID = $(this).attr('data-row');
-
-		var elh = $('.breakdown-view .table-header tr[data-row="' + rowID + '"]').addClass('hover');
-		var elc = $('.breakdown-view .table-content tr[data-row="' + rowID + '"]').addClass('hover');
-	});
-	$('.breakdown-view').parent().on('mouseleave', 'tr', function () {
-		$('.breakdown-view tr.hover').removeClass('hover');
-	});
-};
-
-ba.showExpandAll = function (a) {
-	if (a == true) {
-		$('tr.dd').find('i').removeClass('fa-chevron-right');
-		$('tr.dd').find('i').addClass('fa-chevron-down');
-		$('tr[idparent]').css('display', '');
-		$('tr[idcontparent]').css('display', '');
-		$('tr[statusvaltemp=hide]').css('display', 'none');
-	} else {
-		$('tr.dd').find('i').removeClass('fa-chevron-down');
-		$('tr.dd').find('i').addClass('fa-chevron-right');
-		$('tr[idparent]').css('display', 'none');
-		$('tr[idcontparent]').css('display', 'none');
-		$('tr[statusvaltemp=hide]').css('display', 'none');
-	}
-};
-
-ba.showZeroValue = function (a) {
-	ba.zeroValue(a);
-	if (a == true) {
-		$(".table-header tbody>tr").each(function (i) {
-			if (i > 0) {
-				$(this).attr('statusvaltemp', 'show');
-				$('tr[idpl=' + $(this).attr('idheaderpl') + ']').attr('statusvaltemp', 'show');
-				if (!$(this).attr('idparent')) {
-					$(this).show();
-					$('tr[idpl=' + $(this).attr('idheaderpl') + ']').show();
-				}
-			}
-		});
-	} else {
-		$(".table-header tbody>tr").each(function (i) {
-			if (i > 0) {
-				$(this).attr('statusvaltemp', $(this).attr('statusval'));
-				$('tr[idpl=' + $(this).attr('idheaderpl') + ']').attr('statusvaltemp', $(this).attr('statusval'));
-			}
-		});
-	}
-
-	ba.showExpandAll(false);
-};
-
 ba.breakdownValueAll = { _id: 'All', Name: 'All' };
 ba.optionBreakdownValues = ko.computed(function () {
 	var branches = rpt.masterData.Branch().map(function (d) {
@@ -910,6 +784,28 @@ ba.optionBreakdownValues = ko.computed(function () {
 	});
 	return [ba.breakdownValueAll].concat(branches);
 }, rpt.masterData.Branch);
+
+ba.subBreakdownValue = ko.observableArray([]);
+ba.optionSubBreakdown = ko.computed(function () {
+	switch (ba.breakdownRD()) {
+		case 'All':
+			return rpt.optionsChannels();
+			break;
+		case 'OnlyRD':
+			return rpt.optionsChannels().filter(function (d) {
+				return d._id == 'I1';
+			});
+			break;
+		case 'NonRD':
+			return rpt.optionsChannels().filter(function (d) {
+				return d._id != 'I1';
+			});
+			break;
+	}
+
+	return [];
+}, ba.breakdownRD);
+
 ba.changeBreakdownValue = function () {
 	var all = ba.breakdownValueAll;
 	setTimeout(function () {
@@ -936,15 +832,19 @@ ba.changeBreakdownValue = function () {
 
 vm.currentMenu('Analysis');
 vm.currentTitle('Branch Analysis');
-vm.breadcrumb([{ title: 'Godrej', href: '#' }, { title: 'Branch Analysis', href: '#' }]);
+vm.breadcrumb([{ title: 'Godrej', href: viewModel.appName + 'page/landing' }, { title: 'Home', href: viewModel.appName + 'page/landing' }, { title: 'Branch Analysis', href: '#' }]);
 
-ba.title('Branch Analysis');
+ba.title('&nbsp;');
 
 rpt.refresh = function () {
 	ba.refresh(false);
-	ba.prepareEvents();
+	rpt.prepareEvents();
 };
 
 $(function () {
 	rpt.refresh();
+
+	setTimeout(function () {
+		ba.breakdownValue(['All']);
+	}, 200);
 });

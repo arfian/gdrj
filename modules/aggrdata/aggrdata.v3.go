@@ -21,7 +21,7 @@ var (
 	t0         time.Time
 	fiscalyear int
 	data       map[string]float64
-	tablename  = "salespls"
+	tablename  string
 	alldata    = toolkit.M{}
 )
 
@@ -45,6 +45,7 @@ func main() {
 	t0 = time.Now()
 	data = make(map[string]float64)
 	flag.IntVar(&fiscalyear, "year", 2015, "YYYY representation of godrej fiscal year. Default is 2015")
+	flag.StringVar(&tablename, "table", "salespls-2015", "representation of tablename we used")
 	flag.Parse()
 
 	setinitialconnection()
@@ -54,7 +55,7 @@ func main() {
 
 	eperiode := time.Date(fiscalyear, 4, 1, 0, 0, 0, 0, time.UTC)
 	speriode := eperiode.AddDate(-1, 0, 0)
-	// speriode := eperiode.AddDate(0, -1, 0)
+	speriode = eperiode.AddDate(0, 0, -1)
 
 	seeds := make([]time.Time, 0, 0)
 	seeds = append(seeds, speriode)
@@ -103,44 +104,48 @@ func main() {
 		}
 	}
 
+	// listdimension := []string{"date.fiscal,customer.channelid,customer.channelname",
+	// 	"date.fiscal,customer.channelid,customer.channelname,customer.reportsubchannel",
+	// 	"date.fiscal,customer.channelid,customer.channelname,customer.zone",
+	// 	"date.fiscal,customer.channelid,customer.channelname,customer.areaname",
+	// 	"date.fiscal,customer.channelid,customer.channelname,customer.region",
+	// 	"date.fiscal,customer.branchname",
+	// 	"date.fiscal,product.brand",
+	// 	"date.fiscal,customer.zone",
+	// 	"date.fiscal,customer.areaname",
+	// 	"date.fiscal,customer.region",
+	// 	"date.fiscal,customer.keyaccount",
+	// 	"date.fiscal,date.month,customer.channelid,customer.channelname",
+	// 	"date.fiscal,date.month,customer.branchname",
+	// 	"date.fiscal,date.month,customer.brand",
+	// 	"date.fiscal,date.month,customer.areaname",
+	// 	"date.fiscal,date.month,customer.region",
+	// 	"date.fiscal,date.month,customer.keyaccount",
+	// 	"date.fiscal,date.quartertxt,customer.channelid,customer.channelname",
+	// 	"date.fiscal,date.quartertxt,customer.branchname",
+	// 	"date.fiscal,date.quartertxt,product.brand",
+	// 	"date.fiscal,date.quartertxt,customer.areaname",
+	// 	"date.fiscal,date.quartertxt,customer.region",
+	// 	"date.fiscal,date.quartertxt,customer.keyaccount",
+	// 	"date.fiscal,customer.reportchannel,customer.reportsubchannel",
+	// 	"date.fiscal,customer.customergroupname",
+	// 	"date.fiscal,customer.channelid,customer.channelname,customer.branchname",
+	// 	"date.fiscal,customer.channelid,customer.channelname,customer.reportsubchannel"}
+
 	listdimension := []string{"date.fiscal,customer.channelid,customer.channelname",
-		"date.fiscal,customer.channelid,customer.channelname,customer.reportsubchannel",
-		"date.fiscal,customer.channelid,customer.channelname,customer.zone",
-		"date.fiscal,customer.channelid,customer.channelname,customer.areaname",
-		"date.fiscal,customer.channelid,customer.channelname,customer.region",
 		"date.fiscal,customer.branchname",
 		"date.fiscal,product.brand",
 		"date.fiscal,customer.zone",
 		"date.fiscal,customer.areaname",
-		"date.fiscal,customer.region",
-		"date.fiscal,customer.keyaccount",
-		"date.fiscal,date.month,customer.channelid,customer.channelname",
-		"date.fiscal,date.month,customer.branchname",
-		"date.fiscal,date.month,customer.brand",
-		"date.fiscal,date.month,customer.areaname",
-		"date.fiscal,date.month,customer.region",
-		"date.fiscal,date.month,customer.keyaccount",
-		"date.fiscal,date.quartertxt,customer.channelid,customer.channelname",
-		"date.fiscal,date.quartertxt,customer.branchname",
-		"date.fiscal,date.quartertxt,product.brand",
-		"date.fiscal,date.quartertxt,customer.areaname",
-		"date.fiscal,date.quartertxt,customer.region",
-		"date.fiscal,date.quartertxt,customer.keyaccount",
 		"date.fiscal,customer.reportchannel,customer.reportsubchannel",
-		"date.fiscal,customer.customergroupname",
-		"date.fiscal,customer.channelid,customer.channelname,customer.branchname",
-		"date.fiscal,customer.channelid,customer.channelname,customer.reportsubchannel"}
+		"date.fiscal,customer.reportchannel,customer.reportsubchannel,customer.branchname"}
 
 	resdimension := make(chan int, len(listdimension))
 	dimension := make(chan string, len(listdimension))
 
-	for i := 0; i < 15; i++ {
+	for i := 0; i < 5; i++ {
 		go workerbuilddimension(i, dimension, resdimension)
 	}
-
-	// for i := 0; i < 10; i++ {
-	// 	go workersavedata(i, detaildata, ressavedata)
-	// }
 
 	toolkit.Printfn("Prepare saving collection, Create dimension")
 	for _, str := range listdimension {
@@ -149,26 +154,11 @@ func main() {
 	}
 	close(dimension)
 
-	// alldatarows := 0
 	toolkit.Printfn("Waiting dimension result")
 	for i := 0; i < len(listdimension); i++ {
 		<-resdimension
 		toolkit.Printfn("%v Dimension created", i)
 	}
-	// close(detaildata)
-
-	// step = alldatarows / 100
-	// if step == 0 {
-	// 	step = 1
-	// }
-	// toolkit.Printfn("Saving dimension result")
-	// for i := 0; i < alldatarows; i++ {
-	// 	<-ressavedata
-	// 	if i%step == 0 {
-	// 		toolkit.Printfn("Data saved %d of %d (%d), Done in %s",
-	// 			i, alldatarows, (i / step), time.Since(t0).String())
-	// 	}
-	// }
 
 	toolkit.Printfn("Processing done in %s",
 		time.Since(t0).String())
@@ -233,10 +223,6 @@ func workerproc(wi int, filter *dbox.Filter, result chan<- toolkit.M) {
 
 		tkm.Set(key, dtkm)
 
-		if iscount == 10 {
-			break
-		}
-
 	}
 
 	result <- tkm
@@ -259,7 +245,7 @@ func workerbuilddimension(wi int, dimension <-chan string, resdimension chan<- i
 		// toolkit.Println(str)
 		payload := new(gdrj.PLFinderParam)
 		payload.Breakdowns = strings.Split(str, ",")
-		tablename := toolkit.Sprintf("1-%v", payload.GetTableName())
+		tablename01 := toolkit.Sprintf("1-%v", payload.GetTableName())
 
 		tkm := toolkit.M{}
 		for key, val := range alldata {
@@ -294,7 +280,6 @@ func workerbuilddimension(wi int, dimension <-chan string, resdimension chan<- i
 		}
 
 		i := 0
-		count := len(tkm)
 
 		for k, v := range tkm {
 			i++
@@ -303,47 +288,23 @@ func workerbuilddimension(wi int, dimension <-chan string, resdimension chan<- i
 			arrk := strings.Split(k, "|")
 			for ix, sv := range payload.Breakdowns {
 				tsv := strings.Replace(sv, ".", "_", -1)
-				id.Set(tsv, arrk[ix])
+				id.Set(tsv, "")
+				if len(arrk) > ix {
+					id.Set(tsv, arrk[ix])
+				}
 			}
 
 			a.Set("_id", k)
 			a.Set("key", id)
 
 			_ = workerconn.NewQuery().
-				From(tablename).
+				From(tablename01).
 				SetConfig("multiexec", true).
 				Save().Exec(toolkit.M{}.Set("data", a))
-
-			toolkit.Printfn("Saving dimension %v, %d of %d", str, i, count)
-			// detaildata <- toolkit.M{}.Set(tablename, a)
 		}
+
+		toolkit.Printfn("Saved dimension %v, %d rows", str, len(tkm))
 
 		resdimension <- len(tkm)
-		toolkit.Println("SUM Data : ", len(tkm))
 	}
 }
-
-/*func workersavedata(wi int, detaildata <-chan toolkit.M, ressavedata chan<- int) {
-	workerconn, _ := modules.GetDboxIConnection("db_godrej")
-	defer workerconn.Close()
-
-	tkm := toolkit.M{}
-	//qs := map[string]dbox.IQuery{}
-	for tkm = range detaildata {
-		for tbl, dt := range tkm {
-			//q, exist := qs[tbl]
-			//if !exist {
-			q := workerconn.NewQuery().From(tbl).
-				SetConfig("multiexec", true).
-				Save()
-			//	qs[tbl] = q
-			//}
-			esave := q.Exec(toolkit.M{}.Set("data", dt))
-			if esave != nil {
-				toolkit.Printfn("Can't save %s - %s : %v", tbl, esave.Error(), dt)
-				//os.Exit(100)
-			}
-			ressavedata <- 1
-		}
-	}
-}*/

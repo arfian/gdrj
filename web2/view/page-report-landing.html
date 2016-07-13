@@ -1,0 +1,23 @@
+<div>
+	<div class="col-md-12 col-sm-12 ez panel-content">
+
+<script src="{{BaseUrl}}res/core/js/page-report.js"></script>
+<script src="{{BaseUrl}}res/core/js/page-report-landing.js"></script>
+
+<div class="col-md-12 col-sm-12 no-padding hardcore landing">
+	<div class="panel ez no-padding hardcore">
+		<div class="panel-body" data-bind="foreach: lgd.menu">
+			<div class="box col-md-4" data-bind="css: { 'disabled': $data.hasOwnProperty('nope') }">
+				<div class="wrapper" data-bind="style: { 'background-color': $data.color }">
+					<a data-bind="attr: { 'href': ($data.hasOwnProperty('nope') ? '#' : (viewModel.appName + 'page/' + $data.to)) }">
+						<span class="fa" data-bind="css: toolkit.makeObject($data.icon, true)"></span>
+						<span data-bind="text: $data.title"></span>
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+	</div>
+</div>

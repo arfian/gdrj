@@ -1,0 +1,150 @@
+<div>
+	<div class="col-md-12 col-sm-12 ez panel-content">
+
+<style>
+	.grid-revenue-ebit th {
+		border-color: white;
+	}
+	.grid-revenue-ebit th[data-title="Total"] {
+		border-right: 1px solid white;
+	}
+	.align-center {
+		text-align: center !important;
+	}
+	.grid-revenue-ebit th.color-0 {
+		background-color: #3498DB;
+		color: white;
+	}
+	.grid-revenue-ebit th.color-1 {
+		background-color: #28B463;
+		color: white;
+	}
+</style>
+
+<script src="{{BaseUrl}}res/core/js/page-report.js"></script>
+<script src="{{BaseUrl}}res/core/js/page-report-distribution.js"></script>
+
+
+	<!-- Nav tabs -->
+	<ul class="nav nav-pills nav-replace-title" role="tablist">
+		<li role="presentation" class="active">
+			<a href="#tab1" role="tab" data-toggle="tab" onclick="dsbt.changeTo('Revenue vs EBIT Distribution')">Revenue Vs EBIT Distribution</a>
+		</li>
+		<li role="presentation">
+			<a href="#tab2" role="tab" data-toggle="tab" onclick="dsbt.changeTo('Channel Distribution')">Channel Distribution</a>
+		</li>
+	</ul>
+
+	<!-- Tab panes -->
+	<div class="tab-content">
+		<div role="tabpanel" class="tab-pane active" id="tab1">
+<div class="col-md-12 col-sm-12 no-padding hardcore">
+	<div class="panel ez no-padding hardcore">
+		<div class="panel-heading">
+			<h3 class="no-margin">Revenue Vs EBIT Distribution</h3>
+
+			<div class="panel-nav-button" data-bind="visible: !rve.contentIsLoading()">
+				<div class="form-inline">
+					<button class="btn btn-sm btn-primary tooltipster" data-bind="click: rve.refresh" title="Refresh">
+						<i class="fa fa-refresh"></i> Refresh
+					</button>
+					<button class="btn btn-sm btn-info tooltipster" data-bind="click: rpt.toggleFilter" title="Toggle Advanced Filter">
+						<i class="fa fa-server"></i> Show Filter
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="panel-body" style="min-height: 100px;">
+			<div class="filter pull-right" data-bind="visible: !rve.contentIsLoading()">
+				<div class="form-inline">
+					<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
+						<span class="input-group-addon width-100 align-right">Fiscal Year</span>
+						<div class="width-full">
+							<select type="text" style="width: 150px;" data-bind="kendoDropDownList: { data: rpt.optionFiscalYears, value: rve.fiscalYear }"></select>
+						</div>
+					</div>
+
+					<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
+						<span class="input-group-addon width-100 align-right">Select P&L</span>
+						<div class="width-full">
+							<select type="text" style="width: 150px;" data-bind="kendoDropDownList: { data: rpt.allowedPL, dataValueField: '_id', dataTextField: 'PLHeader3', value: rve.plNetSales, filter: 'contains' }"></select>
+						</div>
+					</div>
+
+					<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
+						<span class="input-group-addon width-100 align-right">vs P&L</span>
+						<div class="width-full">
+							<select type="text" style="width: 150px;" data-bind="kendoDropDownList: { data: rpt.allowedPL, dataValueField: '_id', dataTextField: 'PLHeader3', value: rve.plEBIT, filter: 'contains' }"></select>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="clearfix"></div>
+
+			<div data-bind="visible: rve.contentIsLoading">
+				{{template "_loader.html"}}
+			</div>
+			
+			<div data-bind="visible: !rve.contentIsLoading()">
+				<div class="grid-revenue-ebit"></div>
+			</div>
+		</div>
+	</div>
+</div>
+		</div>
+		<div role="tabpanel" class="tab-pane" id="tab2">
+<div class="col-md-12 col-sm-12 no-padding hardcore">
+	<div class="panel ez no-padding hardcore">
+		<div class="panel-heading">
+			<h3 class="no-margin">Channel Distribution</h3>
+
+			<div class="panel-nav-button" data-bind="visible: !sd.contentIsLoading()">
+				<div class="form-inline">
+					<button class="btn btn-sm btn-primary tooltipster" data-bind="click: sd.refresh" title="Refresh">
+						<i class="fa fa-refresh"></i> Refresh
+					</button>
+					<button class="btn btn-sm btn-info tooltipster" data-bind="click: rpt.toggleFilter" title="Toggle Advanced Filter">
+						<i class="fa fa-server"></i> Show Filter
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="panel-body" style="min-height: 100px;">
+			<div class="filter pull-right" data-bind="visible: !sd.contentIsLoading()">
+				<div class="form-inline">
+					<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
+						<span class="input-group-addon width-100 align-right">Fiscal Year</span>
+						<div class="width-full">
+							<select type="text" style="width: 150px;" data-bind="kendoDropDownList: { data: rpt.optionFiscalYears, value: sd.fiscalYear }"></select>
+						</div>
+					</div>
+
+					<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
+						<span class="input-group-addon width-100 align-right">Select P&L</span>
+						<div class="width-full">
+							<select type="text" style="width: 200px;" data-bind="kendoDropDownList: { data: rpt.allowedPL, dataValueField: '_id', dataTextField: 'PLHeader3', value: sd.selectedPL, filter: 'contains' }"></select>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="clearfix"></div>
+
+			<div data-bind="visible: sd.contentIsLoading">
+				{{template "_loader.html"}}
+			</div>
+
+			<div data-bind="visible: !sd.contentIsLoading()">
+				<div class="grid-sales-dist"></div>
+			</div>
+		</div>
+	</div>
+</div>
+		</div>
+	</div>
+
+	</div>
+
+	{{template "_filter.html"}}
+</div>

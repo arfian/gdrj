@@ -10,21 +10,6 @@
 			<h3 class="no-margin" data-bind="html: kac.title"></h3>
 			<div class="panel-nav-button" data-bind="visible: !kac.contentIsLoading()">
 				<div class="form-inline">
-					<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
-						<span class="input-group-addon align-right">Fiscal Year</span>
-						<div class="width-full">
-							<select type="text" style="width: 150px;" data-bind="kendoDropDownList: { data: rpt.optionFiscalYears, value: kac.fiscalYear }"></select>
-						</div>
-						<div class="clearfix"></div>
-					</div>
-					<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
-						<span class="input-group-addon align-right">Key Accounts</span>
-						<div class="width-full">
-							<select type="text" style="width: 200px;" data-bind="kendoMultiSelect: { data: kac.optionBreakdownValues, dataValueField: '_id', dataTextField: 'Name', value: kac.breakdownValue, placeholder: 'Choose value', change: kac.changeBreakdownValue }"></select>
-						</div>
-						<div class="clearfix"></div>
-					</div>
-					
 					<button class="btn btn-sm btn-primary tooltipster" data-bind="click: kac.refresh" title="Refresh P&L Analysis">
 						<i class="fa fa-refresh"></i> Refresh
 					</button>
@@ -39,6 +24,27 @@
 		</div>
 
 		<div class="panel-body">
+			<div class="filter" data-bind="visible: !kac.contentIsLoading()">
+				<div class="form-inline pull-right">
+					<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
+						<span class="input-group-addon align-right">Fiscal Year</span>
+						<div class="width-full">
+							<select type="text" style="width: 150px;" data-bind="kendoDropDownList: { data: rpt.optionFiscalYears, value: kac.fiscalYear }"></select>
+						</div>
+						<div class="clearfix"></div>
+					</div>
+					
+					<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
+						<span class="input-group-addon align-right">Key Accounts</span>
+						<div class="width-full">
+							<select type="text" style="width: 200px;" data-bind="kendoMultiSelect: { data: kac.optionBreakdownValues, dataValueField: '_id', dataTextField: 'Name', value: kac.breakdownValue, placeholder: 'Choose value', change: kac.changeBreakdownValue }"></select>
+						</div>
+						<div class="clearfix"></div>
+					</div>
+				</div>
+				<div class="clearfix"></div>
+			</div>
+
 			<div data-bind="visible: kac.contentIsLoading">
 				{{template "_loader.html"}}
 			</div>

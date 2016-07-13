@@ -50,6 +50,7 @@ var (
 	vdistskus     = toolkit.M{}
 	mapskuids     = toolkit.M{}
 	lastSalesLine = toolkit.M{}
+	masters       = toolkit.M{}
 )
 
 var mwg sync.WaitGroup
@@ -120,32 +121,11 @@ func prepMaster() {
 		e = cskus.Fetch(sku, 1, false)
 	}
 
-	// sh := new(gdrj.SalesHeader)
-	// filter := dbox.And(dbox.Gte("date", speriode), dbox.Lt("date", eperiode))
-	// filter = nil
-
-	// cshs, _ := gdrj.Find(sh,
-	// 	filter,
-	// 	toolkit.M{})
-	// defer cshs.Close()
-	// for e = cshs.Fetch(sh, 1, false); e == nil; {
-	// 	shs.Set(sh.ID, sh)
-	// 	sh = new(gdrj.SalesHeader)
-	// 	e = cshs.Fetch(sh, 1, false)
-	// }
-
-	conn, _ := modules.GetDboxIConnection("db_godrej")
-	// crsh, _ := conn.NewQuery().Select().From("rawsalesheader-1415").Cursor(nil)
-	// crsh11, _ := conn.NewQuery().Select().From("rawsalesheader-cd11").Cursor(nil)
 	tname := toolkit.Sprintf("%s_grossproc", vdistdetail)
 	cgross, _ := conn.NewQuery().Select().From(tname).Cursor(nil)
-	// defer crsh.Close()
-	// defer crsh11.Close()
 	defer cgross.Close()
-	defer conn.Close()
 
 	for {
-		// _id,
 		tkmcrsh := new(toolkit.M)
 		e := cgross.Fetch(tkmcrsh, 1, false)
 		if e != nil {
@@ -162,6 +142,51 @@ func prepMaster() {
 
 }
 
+func prepmasterclean() {
+
+	toolkit.Println("--> Sub Channel")
+	csr, _ := conn.NewQuery().From("subchannels").Cursor(nil)
+	subchannels := toolkit.M{}
+	defer csr.Close()
+	for {
+		m := toolkit.M{}
+		e := csr.Fetch(&m, 1, false)
+		if e != nil {
+			break
+		}
+		subchannels.Set(m.GetString("_id"), m.GetString("title"))
+	}
+	masters.Set("subchannels", subchannels)
+
+	branchs := toolkit.M{}
+	cmb := getCursor(new(gdrj.MasterBranch))
+	defer cmb.Close()
+	for {
+		stx := toolkit.M{}
+		e := cmb.Fetch(&stx, 1, false)
+		if e != nil {
+			break
+		}
+
+		branchs.Set(stx.Get("_id", "").(string), stx)
+	}
+	masters.Set("branchs", branchs)
+
+	rdlocations := toolkit.M{}
+	crdloc, _ := conn.NewQuery().From("outletgeo").Cursor(nil)
+	defer crdloc.Close()
+	for {
+		stx := toolkit.M{}
+		e := crdloc.Fetch(&stx, 1, false)
+		if e != nil {
+			break
+		}
+
+		rdlocations.Set(stx.GetString("_id"), stx)
+	}
+	masters.Set("rdlocations", rdlocations)
+}
+
 func main() {
 	setinitialconnection()
 	defer gdrj.CloseDb()
@@ -171,16 +196,12 @@ func main() {
 	flag.IntVar(&fiscalyear, "year", 2015, "fiscal year to process. Default is 2015")
 	flag.Parse()
 
-	// if vdistdetail == "" {
-	// 	toolkit.Println("VDist detail collection need to be fill,")
-	// 	os.Exit(1)
-	// }
-
 	eperiode = time.Date(fiscalyear, 4, 1, 0, 0, 0, 0, time.UTC)
 	speriode = eperiode.AddDate(-1, 0, 0)
 
 	toolkit.Println("Reading Master")
 	prepMaster()
+	prepmasterclean()
 
 	toolkit.Println("START...")
 
@@ -217,7 +238,7 @@ func main() {
 		st.SalesHeaderID = toolkit.Sprintf("%s_%s", tkmsd.Get("iv_no", ""), tkmsd.Get("brsap", ""))
 
 		if st.SalesHeaderID == "" {
-			st.SalesHeaderID = "OTHER/03/2015-2014_CD00"
+			st.SalesHeaderID = "OTHER/03/2015-2016_CD00"
 		}
 
 		if lastSalesLine.Has(st.SalesHeaderID) {
@@ -280,15 +301,16 @@ func main() {
 			st.ProductValid = false
 		}
 
-		if custs.Has(st.OutletID) {
-			st.CustomerValid = true
-			st.Customer = custs.Get(st.OutletID).(*gdrj.Customer)
-			// if st.Customer.ChannelID == "I1" {
-			// 	st.CustomerValid = false
-			// }
-		} else {
-			st.CustomerValid = false
-		}
+		st.Customer, st.CustomerValid = getcustomerclean(st.OutletID)
+		// if custs.Has(st.OutletID) {
+		// 	st.CustomerValid = true
+		// 	st.Customer = custs.Get(st.OutletID).(*gdrj.Customer)
+		// 	// if st.Customer.ChannelID == "I1" {
+		// 	// 	st.CustomerValid = false
+		// 	// }
+		// } else {
+		// 	st.CustomerValid = false
+		// }
 
 		if st.ProductValid && st.CustomerValid {
 			pcid := st.Customer.BranchID + st.Product.BrandCategoryID
@@ -307,7 +329,7 @@ func main() {
 		}
 
 		st.Src = "VDIST"
-		st.ID = toolkit.Sprintf("VDIST/2015-2014/%v_%d", st.SalesHeaderID, st.LineNo)
+		st.ID = toolkit.Sprintf("VDIST/2015-2016/%v_%d", st.SalesHeaderID, st.LineNo)
 
 		//////////////////////////////////////////////
 
@@ -361,4 +383,102 @@ func workerProc(wi int, jobs <-chan *gdrj.SalesTrx, result chan<- string) {
 		result <- st.ID
 	}
 
+}
+
+func getcustomerclean(oid string) (cust *gdrj.Customer, cond bool) {
+	cust = new(gdrj.Customer)
+	cond = false
+
+	if !custs.Has(oid) {
+		cond = false
+
+		cust.BranchID = "CD02"
+		cust.CustType = "General"
+		cust.IsRD = false
+	} else {
+		cond = true
+		cust = custs[oid].(*gdrj.Customer)
+	}
+
+	//Do Cleaning
+	subchannels := masters.Get("subchannels").(toolkit.M)
+	subchannel := subchannels.GetString(cust.CustType)
+	switch cust.ChannelID {
+	case "I1":
+		cust.IsRD = true
+		cust.ChannelName = "RD"
+		cust.ReportChannel = "RD"
+		cust.ReportSubChannel = cust.Name
+	case "I3": //MT
+		subchannel = subchannels.GetString("M3")
+		cust.ChannelName = "MT"
+		cust.ReportChannel = "MT"
+
+		if cust.CustType == "M1" || cust.CustType == "M2" {
+			subchannel = subchannels.GetString(cust.CustType)
+		}
+		cust.ReportSubChannel = subchannel
+	case "I4":
+		cust.ChannelName = "INDUSTRIAL"
+		cust.ReportChannel = "IT"
+		// cust.ReportSubChannel = cust.Name
+		cust.ReportSubChannel = subchannels.GetString("S8")
+		if len(cust.CustType) == 2 && cust.CustType[:1] == "S" {
+			cust.ReportSubChannel = subchannels.GetString(cust.CustType)
+		}
+	case "I6":
+		cust.ChannelName = "MOTORIST"
+		cust.ReportChannel = "Motoris"
+		cust.ReportSubChannel = "Motoris"
+	case "EXP":
+		cust.ChannelName = "EXPORT"
+		cust.ReportChannel = "EXPORT"
+		cust.ReportSubChannel = "EXPORT"
+	default:
+		cust.ChannelID = "I2"
+		cust.ChannelName = "GT"
+		cust.ReportChannel = "GT"
+		subchannel := subchannels.GetString(cust.CustType)
+
+		if cust.CustType == "" || (len(cust.CustType) > 1 && cust.CustType[:1] != "R") {
+			subchannel = ""
+		}
+
+		if subchannel == "" {
+			cust.ReportSubChannel = "R18 - Lain-lain"
+		} else {
+			cust.ReportSubChannel = subchannel
+		}
+	}
+
+	mbranchs := masters["branchs"].(toolkit.M)
+	branch, isbranch := mbranchs[cust.BranchID].(toolkit.M)
+
+	if isbranch {
+		cust.BranchName = branch.GetString("name")
+	}
+
+	if !cond && isbranch {
+		cust.National = branch.Get("national", "").(string)
+		cust.Zone = branch.Get("zone", "").(string)
+		cust.Region = branch.Get("region", "").(string)
+		cust.AreaName = branch.Get("area", "").(string)
+	} else if !cond {
+		cust.National = "INDONESIA"
+		cust.Zone = "OTHER"
+		cust.Region = "OTHER"
+		cust.AreaName = "OTHER"
+	}
+
+	if cust.IsRD && masters.Has("rdlocations") {
+		mrdloc := masters["rdlocations"].(toolkit.M)
+		if mrdloc.Has(cust.ID) {
+			tkm := mrdloc[cust.ID].(toolkit.M)
+			cust.Zone = tkm.GetString("zone")
+			cust.Region = tkm.GetString("region")
+			cust.AreaName = tkm.GetString("area")
+		}
+	}
+
+	return
 }

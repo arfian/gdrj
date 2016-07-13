@@ -7,7 +7,7 @@
 <div class="col-md-12 col-sm-12 no-padding hardcore">
 	<div class="panel ez no-padding hardcore">
 		<div class="panel-heading">
-			<h3 class="no-margin" data-bind="text: rd.title"></h3>
+			<h3 class="no-margin" data-bind="html: rd.title"></h3>
 			<div class="panel-nav-button" data-bind="visible: !rd.contentIsLoading()">
 				<div class="form-inline">
 					<button class="btn btn-sm btn-primary tooltipster" data-bind="click: rd.refresh" title="Refresh P&L Analysis">
@@ -33,10 +33,19 @@
 						</div>
 						<div class="clearfix"></div>
 					</div>
+					
 					<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
-						<span class="input-group-addon align-right">Branches</span>
+						<span class="input-group-addon align-right">Select cities</span>
 						<div class="width-full">
-							<select type="text" style="width: 200px;" data-bind="kendoMultiSelect: { data: rd.optionBreakdownValues, dataValueField: '_id', dataTextField: 'Name', value: rd.breakdownValue, placeholder: 'Choose value', change: rd.changeBreakdownValue }"></select>
+							<select type="text" style="width: 200px;" data-bind="kendoMultiSelect: { data: rd.optionBreakdownValues, dataValueField: '_id', dataTextField: 'Name', value: rd.breakdownValue, placeholder: 'Select cities', change: rd.changeBreakdownValue, filter: 'contains' }"></select>
+						</div>
+						<div class="clearfix"></div>
+					</div>
+					
+					<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
+						<span class="input-group-addon align-right">Select Distributors</span>
+						<div class="width-full">
+							<select type="text" style="width: 200px;" data-bind="kendoMultiSelect: { data: rd.optionDistributor, dataValueField: '_id', dataTextField: 'Name', value: rd.filterDistributor, placeholder: 'Select distributors', filter: 'contains' }"></select>
 						</div>
 						<div class="clearfix"></div>
 					</div>

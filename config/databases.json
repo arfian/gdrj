@@ -3,7 +3,7 @@
     "data": {
         "db": "ecgodrej",
         "driver": "mongo",
-        "host": "localhost:27123",
+        "host": "127.0.0.1:27123",
         "pass": "",
         "user": "",
         "setting": {
@@ -16,7 +16,7 @@
     "data": {
         "db": "ecgodrej",
         "driver": "mongo",
-        "host": "localhost:27123",
+        "host": "127.0.0.1:27123",
         "pass": "",
         "user": "",
         "setting": {

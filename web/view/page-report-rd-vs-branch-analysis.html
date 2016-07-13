@@ -1,0 +1,153 @@
+<div>
+	<div class="col-md-12 col-sm-12 ez panel-content">
+
+<script src="{{BaseUrl}}res/core/js/page-report.js"></script>
+<script src="{{BaseUrl}}res/core/js/page-report-rd-vs-branch-analysis.js"></script>
+
+<div>
+
+	<!-- Nav tabs -->
+	<ul class="nav nav-pills nav-replace-title" role="tablist">
+		<li role="presentation" class="active">
+			<a href="#tab0" role="tab" data-toggle="tab" onclick="v1.title('Total Branch & RD')">Total Branch & RD</a>
+		</li>
+		<li role="presentation">
+			<a href="#tab1" role="tab" data-toggle="tab" onclick="v1.title('Breakdown Branch/RD to Channel')">Breakdown Branch/RD to Channel</a>
+		</li>
+		<li role="presentation">
+			<a href="#tab2" role="tab" data-toggle="tab"onclick="v1.title('Breakdown Channel to Branch/RD')">Breakdown Channel to Branch/RD</a>
+		</li>
+	</ul>
+
+	<!-- Tab panes -->
+	<div class="tab-content">
+		<div role="tabpanel" class="tab-pane active" id="tab0">
+
+
+
+<div class="panel ez no-padding hardcore">
+	<div class="panel-heading">
+		<h3 class="no-margin" data-bind="html: v1.title"></h3>
+		<div class="panel-nav-button" data-bind="visible: !v3.contentIsLoading()">
+			<div class="form-inline">
+				<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
+					<span class="input-group-addon align-right">Fiscal Year</span>
+					<div class="width-full">
+						<select type="text" style="width: 150px;" data-bind="kendoDropDownList: { data: rpt.optionFiscalYears, value: v3.fiscalYear }"></select>
+					</div>
+				</div>
+
+				<button class="btn btn-sm btn-primary tooltipster" data-bind="click: v3.refresh" title="Refresh P&L Analysis">
+					<i class="fa fa-refresh"></i> Refresh
+				</button>
+				<button class="btn btn-sm btn-info tooltipster" data-bind="click: rpt.toggleFilter" title="Toggle Advanced Filter">
+					<i class="fa fa-server"></i> Show Filter
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="panel-body">
+		<div data-bind="visible: v3.contentIsLoading">
+			{{template "_loader.html"}}
+		</div>
+
+		<div data-bind="visible: !v3.contentIsLoading()">
+			<div class="breakdown-view ez grid-total-branch-rd"></div>
+			<div class="clearfix"></div>
+		</div>
+	</div>
+</div>
+
+
+
+		</div>
+		<div role="tabpanel" class="tab-pane" id="tab1">
+
+
+
+<div class="panel ez no-padding hardcore">
+	<div class="panel-heading">
+		<h3 class="no-margin" data-bind="html: v1.title"></h3>
+		<div class="panel-nav-button" data-bind="visible: !v1.contentIsLoading()">
+			<div class="form-inline">
+				<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
+					<span class="input-group-addon align-right">Fiscal Year</span>
+					<div class="width-full">
+						<select type="text" style="width: 150px;" data-bind="kendoDropDownList: { data: rpt.optionFiscalYears, value: v1.fiscalYear }"></select>
+					</div>
+				</div>
+
+				<button class="btn btn-sm btn-primary tooltipster" data-bind="click: v1.refresh" title="Refresh P&L Analysis">
+					<i class="fa fa-refresh"></i> Refresh
+				</button>
+				<button class="btn btn-sm btn-info tooltipster" data-bind="click: rpt.toggleFilter" title="Toggle Advanced Filter">
+					<i class="fa fa-server"></i> Show Filter
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="panel-body">
+		<div data-bind="visible: v1.contentIsLoading">
+			{{template "_loader.html"}}
+		</div>
+
+		<div data-bind="visible: !v1.contentIsLoading()">
+			<div class="breakdown-view ez grid-breakdown-branch-rd"></div>
+			<div class="clearfix"></div>
+		</div>
+	</div>
+</div>
+
+
+
+		</div>
+		<div role="tabpanel" class="tab-pane" id="tab2">
+
+
+
+<div class="panel ez no-padding hardcore">
+	<div class="panel-heading">
+		<h3 class="no-margin" data-bind="html: v1.title"></h3>
+		<div class="panel-nav-button" data-bind="visible: !v2.contentIsLoading()">
+			<div class="form-inline">
+				<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
+					<span class="input-group-addon align-right">Fiscal Year</span>
+					<div class="width-full">
+						<select type="text" style="width: 150px;" data-bind="kendoDropDownList: { data: rpt.optionFiscalYears, value: v2.fiscalYear }"></select>
+					</div>
+				</div>
+
+				<button class="btn btn-sm btn-primary tooltipster" data-bind="click: v2.refresh" title="Refresh P&L Analysis">
+					<i class="fa fa-refresh"></i> Refresh
+				</button>
+				<button class="btn btn-sm btn-info tooltipster" data-bind="click: rpt.toggleFilter" title="Toggle Advanced Filter">
+					<i class="fa fa-server"></i> Show Filter
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="panel-body">
+		<div data-bind="visible: v2.contentIsLoading">
+			{{template "_loader.html"}}
+		</div>
+
+		<div data-bind="visible: !v2.contentIsLoading()">
+			<div class="grid-breakdown-channel"></div>
+			<div class="clearfix"></div>
+		</div>
+	</div>
+</div>
+
+
+
+		</div>
+	</div>
+</div>
+
+	</div>
+
+	{{template "_filter.html"}}
+</div>

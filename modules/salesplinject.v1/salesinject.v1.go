@@ -179,7 +179,7 @@ func prepmastercalc() {
 
 	toolkit.Println("--> RAW DATA PL")
 	promos, freight, depreciation := map[string]toolkit.M{}, map[string]*gdrj.RawDataPL{}, map[string]float64{}
-	royalties, damages := map[string]float64{}, map[string]float64{}
+	royalties, royaltiesamount, damages := map[string]float64{}, float64, map[string]float64{}
 	sgapls := map[string]toolkit.M{}
 
 	csrpromo, _ := gdrj.Find(new(gdrj.RawDataPL), f, nil)
@@ -284,6 +284,7 @@ func prepmastercalc() {
 			freight[key] = frg
 		case "ROYALTY":
 			royalties[key] += o.AmountinIDR
+			royaltiesamount += o.AmountinIDR
 		case "DEPRECIATION":
 			dgroup := "indirect"
 			if strings.Contains(o.Grouping, "Factory") {
@@ -358,7 +359,7 @@ func prepmastercalc() {
 			subtot += toolkit.ToFloat64(xv, 6, toolkit.RoundingAuto)
 		}
 	}
-	toolkit.Printfn("Adv, Promos and spg : %v", subtot)
+	toolkit.Printfn("Promos and spg : %v", subtot)
 
 	subtot = float64(0)
 	for _, v := range sgapls {
@@ -369,7 +370,7 @@ func prepmastercalc() {
 	toolkit.Printfn("SGA : %v", subtot)
 
 	masters.Set("promos", promos).Set("freight", freight).Set("depreciation", depreciation).
-		Set("royalties", royalties).Set("damages", damages).Set("sgapls", sgapls)
+		Set("royalties", royalties).Set("damages", damages).Set("sgapls", sgapls).Set("royaltiesamount", royaltiesamount)
 
 	toolkit.Println("--> DISCOUNT ACTIVITY")
 	//discounts_all discounts

@@ -1,0 +1,75 @@
+<div>
+	<div class="col-md-12 col-sm-12 ez panel-content">
+
+<script src="{{BaseUrl}}res/core/js/page-report.js"></script>
+<script src="{{BaseUrl}}res/core/js/page-report-contribution.js"></script>
+
+	<!-- Nav tabs -->
+	<ul class="nav nav-pills nav-replace-title" role="tablist">
+		<li role="presentation" class="active">
+			<a href="#pnl" role="tab" data-toggle="tab" onclick="cbt.changeTo('customer.channelname', 'Contribution by Channels')">Channels</a>
+		</li>
+		<li role="presentation">
+			<a href="#pnl" role="tab" data-toggle="tab" onclick="cbt.changeTo('customer.branchname', 'Contribution by Branches')">Branches</a>
+		</li>
+		<li role="presentation">
+			<a href="#pnl" role="tab" data-toggle="tab" onclick="cbt.changeTo('product.brand', 'Contribution by Brands')">Brands</a>
+		</li>
+		<li role="presentation">
+			<a href="#pnl" role="tab" data-toggle="tab" onclick="cbt.changeTo('customer.areaname', 'Contribution by City')">City</a>
+		</li>
+		<li role="presentation">
+			<a href="#pnl" role="tab" data-toggle="tab" onclick="cbt.changeTo('customer.region', 'Contribution by Region')">Region</a>
+		</li>
+		<li role="presentation">
+			<a href="#pnl" role="tab" data-toggle="tab" onclick="cbt.changeTo('customer.zone', 'Contribution by Zone')">Zone</a>
+		</li>
+	</ul>
+
+
+<div class="panel ez no-padding hardcore">
+	<div class="panel-heading">
+		<h3 class="no-margin" data-bind="html: cbt.title">Contribution by Channels</h3>
+		<div class="panel-nav-button" data-bind="visible: !cbt.contentIsLoading()">
+			<div class="form-inline">
+				<button class="btn btn-sm btn-primary tooltipster" data-bind="click: cbt.refresh" title="Refresh">
+					<i class="fa fa-refresh"></i> Refresh
+				</button>
+				<button class="btn btn-sm btn-info tooltipster" data-bind="click: rpt.toggleFilter" title="Toggle Advanced Filter">
+					<i class="fa fa-server"></i> Show Filter
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="panel-body">
+		<div class="filter" data-bind="visible: !cbt.contentIsLoading()">
+			<div class="form-inline pull-right">
+				<div class="input-group input-group-sm ez margin-bottom-10 margin-right-5">
+					<span class="input-group-addon align-right">Fiscal Year</span>
+					<div class="width-full">
+						<select type="text" style="width: 150px;" data-bind="kendoDropDownList: { data: rpt.optionFiscalYears, value: cbt.fiscalYear }"></select>
+					</div>
+				</div>
+
+				<div class="clearfix"></div>
+			</div>
+			
+			<div class="clearfix"></div>
+		</div>
+
+		<div data-bind="visible: cbt.contentIsLoading">
+			{{template "_loader.html"}}
+		</div>
+
+		<div data-bind="visible: !cbt.contentIsLoading()">
+			<div class="grid"></div>
+			<div class="clearfix"></div>
+		</div>
+	</div>
+</div>
+
+	</div>
+
+	{{template "_filter.html"}}
+</div>
