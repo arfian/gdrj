@@ -870,6 +870,7 @@ rpt.buildGridLevels = (rows) => {
 	rpt.hideSubGrowthValue()
 	$(".pivot-pnl .table-header tr:not([idparent]):not([idcontparent])").addClass('bold')
 	rpt.refreshHeight()
+	rpt.addScrollBottom()
 }
 
 rpt.hideSubGrowthValue = () => {
@@ -877,6 +878,51 @@ rpt.hideSubGrowthValue = () => {
 		$(`[idheaderpl="PL${i + 1}"] td:contains("%")`).html('&nbsp;')
 		$(`[idpl="PL${i + 1}"] td:contains("%")`).html('&nbsp;')
 	})
+}
+
+rpt.addScrollBottom = () => {
+	$(".breakdown-view").each(function( i ) {
+		toolkit.newEl('div')
+			.addClass('scroll-grid-bottom-yo')
+			.appendTo($(this).find(".pivot-pnl"))
+
+		let tableContent = toolkit.newEl('div')
+			.addClass('scroll-grid-bottom')
+			// .css("width", $("table-content").width())
+			.appendTo($(this).find(".pivot-pnl"))
+
+		toolkit.newEl('div')
+			.addClass('content-grid-bottom')
+			.css("min-width", $(this).find('.table-content>.table').width() - 48)
+			.html("&nbsp;")
+			.appendTo(tableContent)
+
+		// $(".scroll-grid-bottom").each(function( i ) {
+		let target = $(this).find(".scroll-grid-bottom")[0]
+		$(this).find(".table-content").scroll(function() {
+			target.scrollLeft = this.scrollLeft
+		})
+	    // });
+	});
+	rpt.panel_scrollrelocated()
+}
+
+rpt.panel_scrollrelocated = () => {
+	if ($('.scroll-grid-bottom-yo').size() == 0) {
+		return;
+	}
+	
+	let window_top = $(window).scrollTop() + $(window).innerHeight()
+    var div_top = $('.scroll-grid-bottom-yo').offset().top.toFixed()
+    if (parseInt(div_top) < parseInt(window_top.toFixed(0))) {
+        $('.scroll-grid-bottom').removeClass('viewscrollfix')
+        $(".scroll-grid-bottom").hide()
+        $('.scroll-grid-bottom.viewscrollfix').css("width", "100%")
+    } else {
+        $('.scroll-grid-bottom').addClass('viewscrollfix')
+        $(".scroll-grid-bottom").show()
+        $('.scroll-grid-bottom.viewscrollfix').css("width", $('.breakdown-view .table-content').width())
+    }
 }
 
 rpt.hideAllChild = (PLCode) => {
@@ -1038,8 +1084,12 @@ rpt.export = (target, title, mode) => {
 }
 
 $(() => {
-	$(window).scroll(rpt.panel_relocated);
+	$(window).scroll(function(){ 
+		rpt.panel_relocated()
+		rpt.panel_scrollrelocated()
+	});
     rpt.panel_relocated()
+    
 	// rpt.getIdeas()
 	rpt.getOtherMasterData()
 })

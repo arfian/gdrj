@@ -1058,3 +1058,43 @@ html, body{
 		margin-top: 0px;
 	}
 }
+
+.scroll-grid-bottom.viewscrollfix{
+	position: fixed;
+	bottom: 0px;
+	z-index: 10000;
+}
+
+.scroll-grid-bottom {
+	margin-left: 420px;
+	height: 10px;
+	overflow-x: scroll;
+}
+
+.table-content::-webkit-scrollbar {
+    -webkit-appearance: none;
+}
+
+.table-content::-webkit-scrollbar:horizontal {
+    height: 11px;
+}
+
+.table-content::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+    border: 2px solid white; /* should match background, can't be transparent */
+    background-color: rgba(0, 0, 0, .5);
+}
+
+.scroll-grid-bottom::-webkit-scrollbar {
+    -webkit-appearance: none;
+}
+
+.scroll-grid-bottom::-webkit-scrollbar:horizontal {
+    height: 11px;
+}
+
+.scroll-grid-bottom::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+    border: 2px solid white; /* should match background, can't be transparent */
+    background-color: rgba(0, 0, 0, .5);
+}

@@ -1,7 +1,5 @@
 'use strict';
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
 viewModel.breakdown = new Object();
 var bkd = viewModel.breakdown;
 
@@ -1344,39 +1342,27 @@ rs.fiscalYear = ko.observable(rpt.value.FiscalYear());
 rs.columnWidth = ko.observable(130);
 rs.breakdownTimeValue = ko.observableArray([]);
 rs.optionTimeSubBreakdowns = ko.computed(function () {
-	var _ret4 = function () {
-		switch (rs.breakdownTimeBy()) {
-			case 'date.fiscal':
-				return {
-					v: rpt.optionFiscalYears().slice(0).map(function (d) {
-						return { field: d, name: d };
-					})
-				};
-				break;
-			case 'date.quartertxt':
-				return {
-					v: ['Q1', 'Q2', 'Q3', 'Q4'].map(function (d) {
-						return { field: d, name: d };
-					})
-				};
-				break;
-			case 'date.month':
-				var y = parseInt(rs.fiscalYear().split('-')[0]);
-				return {
-					v: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (d) {
-						var m = d - 1 + 3;
-						return { field: d, name: moment(new Date(y, m, 0)).format('MMMM YYYY') };
-					})
-				};
-				break;
-			default:
-				return {
-					v: []
-				};break;
-		}
-	}();
-
-	if ((typeof _ret4 === 'undefined' ? 'undefined' : _typeof(_ret4)) === "object") return _ret4.v;
+	switch (rs.breakdownTimeBy()) {
+		case 'date.fiscal':
+			return rpt.optionFiscalYears().slice(0).map(function (d) {
+				return { field: d, name: d };
+			});
+			break;
+		case 'date.quartertxt':
+			return ['Q1', 'Q2', 'Q3', 'Q4'].map(function (d) {
+				return { field: d, name: d };
+			});
+			break;
+		case 'date.month':
+			var y = parseInt(rs.fiscalYear().split('-')[0]);
+			return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (d) {
+				var m = d - 1 + 3;
+				return { field: d, name: moment(new Date(y, m, 0)).format('MMMM YYYY') };
+			});
+			break;
+		default:
+			return [];break;
+	}
 }, rs.breakdownTimeBy);
 rs.changeBreakdownTimeBy = function () {
 	rs.breakdownTimeValue([]);
