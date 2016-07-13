@@ -23,7 +23,8 @@ growth.refresh = function () {
 
 	var param = {};
 	param.pls = [];
-	param.groups = rpt.parseGroups([growth.breakdownBy()]);
+	param.groups = rpt.parseGroups([growth.breakdownBy(), "date.year", "date.quartertxt"]);
+	// param.groups = rpt.parseGroups([growth.breakdownBy()])
 	param.aggr = 'sum';
 	param.filters = rpt.getFilterValue(false, growth.fiscalYear);
 
@@ -46,7 +47,7 @@ growth.refresh = function () {
 			rpt.plmodels(res.Data.PLModels);
 			growth.emptyGrid();
 			growth.contentIsLoading(false);
-			// growth.render()
+			growth.render();
 		}, function () {
 			growth.emptyGrid();
 			growth.contentIsLoading(false);
@@ -86,11 +87,20 @@ rpt.refresh = function () {
 	setTimeout(function () {
 		// bkd.breakdownValue(['All'])
 		growth.refresh(false);
+		$("ul.nav-pills").find('li').removeClass("active");
+		$('a[field=\'' + growth.breakdownBy() + '\']').parent().addClass('active');
 	}, 200);
 
 	rpt.prepareEvents();
 
 	// ccr.getDecreasedQty(false)
+};
+
+rpt.selectBreakDown = function (d, e) {
+	// console.log(d, $(e.target).closest(".nav-pills"))
+	$(e.target).closest(".nav-pills").find('li').removeClass("active");
+	$(e.target).parent().addClass('active');
+	growth.breakdownBy($(e.target).attr('field'));
 };
 
 $(function () {

@@ -7,8 +7,8 @@
 <div>
 
 	<!-- Nav tabs -->
-	<ul class="nav nav-pills nav-replace-title" role="tablist">
-		<li role="presentation" class="active">
+	<ul class="nav nav-pills nav-replace-title" role="tablist" data-bind="template: { name: 'breakdownTemplate', foreach: rpt.optionDimensions() }">
+		<!-- <li role="presentation" class="active">
 			<a href="#tab1">Brands</a>
 		</li>
 		<li role="presentation">
@@ -28,7 +28,7 @@
 		</li>
 		<li role="presentation">
 			<a href="#tab7">Zone</a>
-		</li>
+		</li> -->
 	</ul>
 
 	<!-- Tab panes -->
